@@ -861,3 +861,8 @@ error. Plan: (1) name and show the per-game estimate as a Performance Rank; (2) 
 over their games; (3) evaluate by win prediction in even games and by multi-game MAE as well as per-game MAE;
 (4) result-adjusted training targets (Elo-style performance from result vs the opponent's rank), kept only if (3)
 improves.
+- **Own repository for results (the user's choice):** github.com/JJLDonley/goranks holds site/, data/, reports/,
+  charts/, a README and the Pages workflow; site at https://jjldonley.github.io/goranks/. The code stays in
+  Gifu/GoRanks; push_site.py commits from the Gifu folder with a temporary index and pushes to goranks main. The
+  Pages workflow is split into build and deploy jobs (in one job, deploy-pages twice failed to find the artifact just
+  uploaded). Removed from Gifu: the gifu-training branch, Gifu's Pages site, the /mnt/c/Gifu-training worktree.
