@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rank Estimate Training</title>
+<style>
+  :root {
+    --surface: #fcfcfb; --panel: #ffffff; --ink: #1f1f1e; --ink-2: #4a4a47; --muted: #6b6b68; --grid: #e4e4e1;
+    --band: #f0f0ec; --accent: #2a78d6;
+    --c-overall: #2a78d6; --c-opening: #eb6834; --c-middle: #1baf7a; --c-end: #eda100;
+  }
+  * { box-sizing: border-box; }
+  /* One centred column: readable on wide monitors, never squashed on narrow ones (it scrolls instead). */
+  .wrap { max-width: 1280px; min-width: 960px; margin: 0 auto; }
+  html { overflow-x: auto; }
+  .card svg { max-height: 230px; display: block; }
+  #boardbox svg { max-height: none; }
+  .grid .card svg { max-height: 200px; }
+  .moveinfo { margin-top: 8px; height: 20px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .movekey { height: 18px; line-height: 18px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .movetable { width: 100%; table-layout: fixed; margin-top: 4px; }
+  .movetable td { height: 24px; overflow: hidden; text-overflow: ellipsis; }
+  .wheregrid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .maps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 640px; }
+  .maptitle { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .mapkey { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+  .mapkey span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-left: 8px; }
+  .mapkey .k1 { background: #1f1f1e; margin-left: 0; } .mapkey .k2 { background: #b0b0ab; } .mapkey .k3 { background: #2a78d6; }
+  table.areagrid { border-collapse: separate; border-spacing: 4px; width: 100%; max-width: 640px; }
+  td.areacell { text-align: left; vertical-align: top; padding: 6px 8px; border-radius: 4px; font-size: 12px; white-space: normal; }
+  td.areacell.corner { background: #d9cfb6; } td.areacell.side { background: #e6dec9; } td.areacell.center { background: #efe9db; }
+  td.areacell .an { font-weight: 600; color: var(--ink-2); margin-bottom: 2px; text-transform: capitalize; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stat { background: var(--band); border-radius: 4px; padding: 6px 10px; min-width: 110px; }
+  .stat .sv { font-size: 16px; font-weight: 600; } .stat .sl { font-size: 11px; color: var(--muted); }
+  h3.sub { font-size: 14px; margin: 18px 0 8px; }
+  .gamegrid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 8px; }
+  body { margin: 0; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--surface); }
+  header { padding: 18px 24px 0; }
+  h1 { margin: 0; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  nav { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid var(--grid); }
+  nav button { border: 0; background: none; padding: 8px 14px; font: inherit; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; }
+  nav button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  main { padding: 16px 24px 40px; }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  table { border-collapse: collapse; background: var(--panel); }
+  th, td { padding: 4px 10px; text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-size: 12px; font-weight: 600; vertical-align: bottom; border-bottom: 1px solid var(--grid); }
+  td.l, th.l { text-align: left; }
+  tr.first td { font-weight: 600; }
+  tr.shade td { background: var(--band); }
+  tr.thin td { color: var(--muted); }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: #e8f0fb; }
+  .legend-note { color: var(--muted); font-size: 12px; max-width: 1100px; margin-top: 8px; }
+  details.howto { margin: 14px 0 6px; max-width: 1100px; font-size: 12.5px; }
+  details.howto summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+  details.howto h3 { font-size: 13px; margin: 14px 0 4px; color: var(--ink); background: none; padding: 0; text-align: left; }
+  details.howto table { margin: 0; }
+  details.howto td { white-space: normal; text-align: left; vertical-align: top; padding: 4px 10px; }
+  details.howto td.k { white-space: nowrap; font-weight: 600; color: var(--ink); width: 1%; }
+  details.howto p, details.howto li { color: var(--ink-2); margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--grid); border-radius: 6px; padding: 10px 12px; }
+  .card h3 { margin: 0 0 2px; font-size: 13px; }
+  .card .unit { color: var(--muted); font-size: 11px; }
+  .keys { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin: 6px 0 0; flex-wrap: wrap; }
+  .keys span::before { content: ""; display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters select, .filters input { font: inherit; padding: 4px 8px; border: 1px solid var(--grid); border-radius: 4px; background: var(--panel); }
+  .tip { position: fixed; pointer-events: none; background: #1f1f1e; color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 4px; z-index: 10; display: none; white-space: nowrap; }
+  .back { border: 1px solid var(--grid); background: var(--panel); border-radius: 4px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  .muted { color: var(--muted); }
+  svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  svg .lbl { fill: var(--ink); }
+  .scroll { overflow-x: auto; }
+  /* Moves list: 10 rows visible, the rest scroll; the column labels stay in view (sticky header). */
+  .movescroll { overflow: auto; border-bottom: 1px solid var(--grid); }
+  .movescroll th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Rank Estimate Training</h1>
+  <div class="sub" id="stamp"></div>
+</header>
+<nav>
+  <button data-tab="overview" class="on">Overview</button>
+  <button data-tab="ranks">Ranks</button>
+  <button data-tab="games">Games</button>
+</nav>
+<main id="main"></main>
+</div>
+<div class="tip" id="tip"></div>
+<script src="data/summary.js"></script>
+<script>
+"use strict";
+// Names fixed by the user (GoRanks/CLAUDE.md): phases and columns, in this order.
+const PHASES = ["overall", "opening", "middle", "end"];
+const PHASE_NAMES = { overall: "Overall", opening: "Opening", middle: "Middle", end: "Endgame" };
+const COLUMNS = [
+  ["games", "Games Analyzed"], ["moves", "Moves Analyzed"], ["top1", "Best Move %"], ["accuracy", "Accuracy"], ["match_pct", "Match %"],
+  ["mean_loss", "Avg Point Loss"], ["critical_top1", "Key Moment Top Move %"],
+  ["difficulty_9d", "Game Difficulty (9d) %"], ["hard_positions", "Tough Spots (per game)"],
+  ["hard_found_pct", "Key Move Found % (per game)"], ["engine_like_pct", "Engine Likeness %"],
+];
+const POS_COLUMNS = [["same_area_pct", "Same Area %"], ["direction_err_per100", "Direction Errors %"],
+  ["local_err_per100", "Local Errors %"], ["resolved_pct", "Resolved-Area Play %"], ["low_value_pct", "Lower-Value Area %"],
+  ["forced_error_pct", "Forced Error %"], ["forcing_induced_pct", "Forcing Success %"],
+  ["same_shape_pct", "Same Shape %"], ["bad_shape_pct", "Empty Triangle %"]];
+const BANDS = ["K1", "K2", "K3", "K4", "K5", "D1-3", "D4-6", "D7-9", "Pro"];
+const WRAP = { "Games Analyzed": "Games<br>Analyzed", "Moves Analyzed": "Moves<br>Analyzed", "Best Move %": "Best<br>Move %",
+  "Avg Point Loss": "Avg Point<br>Loss", "Key Moment Top Move %": "Key Moment<br>Top Move %",
+  "Game Difficulty (9d) %": "Game Difficulty<br>(9d) %", "Tough Spots (per game)": "Tough Spots<br>(per game)", "Key Move Found % (per game)": "Key Move Found %<br>(per game)",
+  "Engine Likeness %": "Engine<br>Likeness %", "AI-like span (moves)": "AI-like span<br>(moves)" };
+const head = t => WRAP[t] || esc(t);
+const MIN_MOVES = 50;
+const CHARTS = [   // [column, title, unit, transform]
+  ["top1", "Best Move %", "% of moves", v => 100 * v],
+  ["mean_loss", "Avg Point Loss", "points per move", v => v],
+  ["critical_top1", "Key Moment Top Move %", "% of key moments", v => 100 * v],
+  ["difficulty_9d", "Game Difficulty (9d) %", "a 9d's error rate, %", v => v],
+  ["hard_found_pct", "Key Move Found % (per game)", "average per-game % of Tough Spots (from 5 Tough Spots on)", v => v],
+  ["engine_like_pct", "Engine Likeness %", "% of moves (move 41 on, not decided)", v => v],
+];
+
+const data = window.GR_SUMMARY || { rows: [] };
+// Eras (data separation): band and rank rows come per era plus "all"; game rows carry their game's era.
+const ERAS = [["pre", "Pre-AI (≤2015)"], ["early", "Early AI (2016–18)"], ["cur", "Current AI (2019+)"]];
+const ERA_NAME = Object.fromEntries(ERAS);
+const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["pro", "Pro"]];
+const SERVER_NAME = Object.fromEntries(SERVERS);
+let pick = { band: "", era: "", server: "" };   // the band and era chosen in the dropdowns (shared by every tab)
+let rows = [];
+function applyEra() {
+  rows = data.rows.filter(r => r.level === "game"
+    ? (!pick.era || r.era === pick.era) && (!pick.server || r.server === pick.server)
+    : (r.era || "all") === (pick.era || "all") && (r.server || "all") === (pick.server || "all"));
+}
+applyEra();
+const eraTitle = () => (pick.server ? " · " + SERVER_NAME[pick.server] : "") + (pick.era ? " · " + ERA_NAME[pick.era] : "");
+document.getElementById("stamp").textContent = `Generated ${data.generated || "?"} · ${new Set(rows.filter(r => r.level === "game").map(r => r.id)).size} games · ` +
+  `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0).map(r => r.id)).size} games in the totals`;
+const main = document.getElementById("main");
+const tip = document.getElementById("tip");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COLOR = { overall: css("--c-overall"), opening: css("--c-opening"), middle: css("--c-middle"), end: css("--c-end") };
+const rankValue = r => { const n = parseInt(r); return r.endsWith("k") ? 1 - n : r.endsWith("d") ? n : 10; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function fmt(col, v) {
+  if (v === null || v === undefined || v === "") return "–";
+  if (col === "top1" || col === "critical_top1") return `${Math.round(100 * v)} %`;
+  if (col === "hard_found_pct") return `${Math.round(v)} %`;
+  if (col === "difficulty_9d" || col === "engine_like_pct" || col === "match_pct") return `${(+v).toFixed(1)} %`;
+  if (col === "accuracy") return (+v).toFixed(1);
+  if (POS_COLUMNS.some(c => c[0] === col)) return `${(+v).toFixed(1)} %`;
+  if (col === "mean_loss") return (+v).toFixed(2);
+  return String(v);
+}
+
+// ---- tables ------------------------------------------------------------------------------------
+function groupedTable(groups, firstHeader, cols, opts = {}) {
+  // groups: [{label, rows: {phase: row}, onclick?}]
+  let h = `<div class="scroll"><table><tr><th class="l">${firstHeader}</th><th class="l">Phase</th>` +
+          cols.map(c => `<th>${head(c[1])}</th>`).join("") + "</tr>";
+  groups.forEach((g, gi) => {
+    PHASES.forEach(ph => {
+      const r = g.rows[ph];
+      if (!r) return;
+      const cls = [gi % 2 === 0 ? "shade" : "", ph === "overall" ? "first" : "",
+                   opts.muteThin !== false && r.moves < MIN_MOVES ? "thin" : "", g.click ? "click" : ""].join(" ");
+      h += `<tr class="${cls}" ${g.click ? `data-go="${esc(g.click)}"` : ""}><td class="l">${ph === "overall" ? esc(g.label) : ""}</td>` +
+           `<td class="l">${PHASE_NAMES[ph]}</td>` + cols.map(c => `<td>${esc(fmt(c[0], r[c[0]]))}</td>`).join("") + "</tr>";
+    });
+  });
+  return h + "</table></div>";
+}
+
+function levelGroups(level, key, order) {
+  const out = [];
+  order.forEach(k => {
+    const byPhase = {};
+    rows.filter(r => r.level === level && r[key] === k).forEach(r => byPhase[r.phase] = r);
+    if (Object.keys(byPhase).length) out.push({ label: k, rows: byPhase });
+  });
+  return out;
+}
+
+// ---- charts (SVG, with hover) --------------------------------------------------------------------
+function lineChart(title, unit, xs, series, opts = {}) {
+  // series: [{name, color, points: [{x index, y, thin, tip}]}]
+  const W = 400, H = 220, L = 44, R = 70, T = 14, B = 36;
+  const all = series.flatMap(s => s.points.map(p => p.y)).filter(v => v !== null);
+  if (!all.length) return "";
+  let lo = Math.min(0, ...all), hi = Math.max(...all);
+  if (hi === lo) hi = lo + 1;
+  hi += (hi - lo) * 0.08;
+  const x = i => L + (xs.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (xs.length - 1));
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(title)}">`;
+  const ticks = 4;
+  for (let k = 0; k <= ticks; k++) {
+    const v = lo + (hi - lo) * k / ticks, yy = y(v);
+    s += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="${css("--grid")}"/>` +
+         `<text x="${L - 6}" y="${yy + 4}" text-anchor="end">${+v.toFixed(v < 10 ? 1 : 0)}</text>`;
+  }
+  const every = Math.ceil(xs.length / 16);
+  xs.forEach((lab, i) => { if (i % every === 0) s += `<text x="${x(i)}" y="${H - B + 16}" text-anchor="middle">${esc(lab)}</text>`; });
+  const ends = [];
+  series.forEach(se => {
+    const pts = se.points.filter(p => p.y !== null);
+    if (!pts.length) return;
+    s += `<polyline fill="none" stroke="${se.color}" stroke-width="2" points="${pts.map(p => `${x(p.x)},${y(p.y)}`).join(" ")}"/>`;
+    pts.forEach(p => {
+      s += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="4" fill="${p.thin ? "#fff" : se.color}" stroke="${p.thin ? se.color : "#fff"}" stroke-width="${p.thin ? 1.6 : 1.2}"/>` +
+           `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="11" fill="transparent" data-tip="${esc(p.tip)}"/>`;
+    });
+    ends.push([se.name, x(pts[pts.length - 1].x), y(pts[pts.length - 1].y)]);
+  });
+  ends.sort((a, b) => a[2] - b[2]);
+  for (let i = 1; i < ends.length; i++) if (ends[i][2] - ends[i - 1][2] < 12) ends[i][2] = ends[i - 1][2] + 12;
+  ends.forEach(([n, ex, ey]) => s += `<text class="lbl" x="${ex + 8}" y="${ey + 4}">${esc(n)}</text>`);
+  s += "</svg>";
+  return `<div class="card"><h3>${esc(title)}</h3><div class="unit">${esc(unit)}</div>${s}</div>`;
+}
+
+function phaseCharts(level, key, order) {
+  const keys = `<div class="keys">${PHASES.map(p => `<span style="--c:${COLOR[p]}">${PHASE_NAMES[p]}</span>`).join("")}</div>`;
+  const cards = CHARTS.map(([col, title, unit, tf]) => lineChart(title, unit, order, PHASES.map(ph => ({
+    name: PHASE_NAMES[ph], color: COLOR[ph],
+    points: order.map((k, i) => {
+      const r = rows.find(r => r.level === level && r[key] === k && r.phase === ph);
+      let v = r ? r[col] : null;
+      if (col === "hard_found_pct" && r && (r.hard_total ?? r.hard_positions) < 5) v = null;
+      v = v === null || v === undefined || v === "" ? null : tf(+v);
+      return { x: i, y: v, thin: r && r.moves < MIN_MOVES,
+               tip: r ? `${k} · ${PHASE_NAMES[ph]}: ${fmt(col, r[col])} (${r.moves} moves, ${r.player_games} games)` : "" };
+    }),
+  })))).join("");
+  return keys + `<div class="grid">${cards}</div>`;
+}
+
+
+// ---- "How the data is made": the full legend key (shown under every table) ------------------------------------
+const HOWTO_ROWS = (title, rows) => `<h3>${title}</h3><table>` +
+  rows.map(([k, v]) => `<tr><td class="k">${k}</td><td>${v}</td></tr>`).join("") + `</table>`;
+const HOWTO = `<details class="howto" open><summary>How the data is made</summary>
+${HOWTO_ROWS("Where the games come from", [
+  ["KGS", "The u-go.net KGS archive (games with at least one 4d+ player, up to April 2019). Ranks are the KGS ranks shown in the game record."],
+  ["OGS", "The OGS data dump (za3k.com/ogs, made with OGS's permission), ranks from its game data."],
+  ["Pro", "Professional games from kifudepot.net. Each pro is labelled by strength at the date of the game, from goratings.org: <b>top</b> = among the ~50 highest-rated that year, <b>new</b> = within 2 years of their first rated game, <b>mid</b> = the rest."],
+  ["Kept", "19x19 only, at least 50 moves, settled ranks, players 15k–9d (pros only from the pro source). Bots are removed by name lists, by a volume rule (300+ games at 12+ per day) and by the OGS account type; games and accounts you flagged as suspected AI use are removed too."],
+  ["Fully analysed", "Only games where every move has the engine analysis and every human profile count anywhere (totals, tables, charts, this viewer)."],
+])}
+${HOWTO_ROWS("How every move is analysed", [
+  ["KataGo (engine)", "Network b18c384nbt, an 8-visit search of the position before each move: the engine's best move, its candidates with score lead and win rate, and ownership of every point."],
+  ["KataGo-Human", "KataGo's human-trained network, asked with 17 rank profiles (20k … 1k, 1d … 9d): for each profile, how likely a player of that rank is to play each move here."],
+  ["Candidate searches", "Moves a 9d would plausibly play get their own 16-visit search (up to 8 per position) until at least 95 % of the 9d profile's probability has a reliable loss (a loss from 4+ visits). Shallower numbers are kept as data but not shown."],
+  ["Point Loss", "Score lead before the move minus score lead after it, from the mover's side, in points. A negative value is a <b>gain</b>: the move did better than the shallow search expected; it counts as 0 in Avg Point Loss."],
+])}
+${HOWTO_ROWS("The table columns", [
+  ["Games Analyzed", "Games, each counted once (both players of a game together). In a rank or band row, a game counts when either of its players is in that rank or band."],
+  ["Moves Analyzed", "That player's own moves, in the phase shown (Overall, Opening 1–60, Middle 61–150, Endgame 151+)."],
+  ["Best Move %", "Share of the player's moves that were KataGo's first choice."],
+  ["Accuracy", "As in Gifu (Hawk Eye, LizzieYzy): per move, 100 when the player chose KataGo's first choice, otherwise the played move's search visits as a % of the best move's (0 when KataGo did not list it); the average over the player's moves."],
+  ["Match %", "As in Gifu (Hawk Eye): share of the player's moves that KataGo listed among its top 360 candidates with at least 10 % of the best move's visits."],
+  ["Avg Point Loss", "Average Point Loss per move (gains count as 0, one move counts at most 30 points)."],
+  ["Key Moment Top Move %", "A <b>Key Moment</b> is a position where players of the player's own declared rank would lose 2+ points on average (the KataGo-Human profile of that rank, its move probabilities times the losses of those moves). This is the share of Key Moments where the player found KataGo's first choice."],
+  ["Game Difficulty (9d) %", "How often a 9d would go wrong in these positions: the average Position Difficulty (9d) over the positions that have one. An error rate, not a score."],
+  ["Tough Spots (per game)", "A Tough Spot is a position where a 9d goes wrong (loses 2+ points) at least half the time — Position Difficulty (9d) of 50 % or more. The column is the average number of Tough Spots per game (one player's side of one game); an individual game shows its own count."],
+  ["Key Move Found % (per game)", "For each game, the share of that game's Tough Spots where the player found a good move (lost less than 2 points); the column is the average of those per-game shares, over the games that had at least one Tough Spot. An individual game shows its own share."],
+  ["Same Area %", "The board is split at the 4th line into 4 corners (within the 4th line of both edges), 4 sides (within the 4th line of one edge) and the center. Share of the player's moves in the same area as KataGo's best move. In a symmetric position (the opening) a move equivalent to the best under a rotation or mirror counts as the best move."],
+  ["Direction Errors %", "Share of moves that lost 2+ points in a different area from KataGo's best: the wrong part of the board (direction of play)."],
+  ["Local Errors %", "Share of moves that lost 2+ points in the same area as KataGo's best: the right place, the wrong move."],
+  ["Resolved-Area Play %", "Share of moves into an area KataGo's ownership shows as already decided (average ownership certainty of 85 %+ around the point) while KataGo's best was in an open area."],
+  ["Lower-Value Area %", "Share of moves in a different area from KataGo's best that lost at least 1 point: playing where it matters less (positional judgement)."],
+  ["Same Shape %", "Every move gets a named shape from the stones around it (hane, kosumi, one-point jump, knight's move, attach, extend, cut, wedge, crosscut, peep, connect, atari, capture, tiger's mouth, bamboo joint, empty triangle, 3-3 invasion, approach, open; rotations, mirrors and both colours count as the same shape). Share of moves whose shape is the same as the shape of KataGo's best move — the right kind of move, even when not the exact point."],
+  ["Empty Triangle %", "Share of moves that make an empty triangle (three own stones in an L with the fourth point empty), the classic inefficient shape."],
+  ["Forced Error %", "A forcing move is an attack or sente move where KataGo's best reply is local (within 2 points) and playing elsewhere loses 3+ points. Share of the forcing moves a player faced that they answered locally but still lost 2+ points on (playing elsewhere and losing 2+ is counted separately)."],
+  ["Forcing Success %", "Share of the player's own forcing moves after which the opponent lost 2+ points."],
+  ["Where they play (game view)", "The distribution map shows each of the player's moves: full black / white when KataGo liked it (10 %+ of the best move's visits), otherwise greyed by how much it lost (greyer = worse); dashed lines = the 4th-line areas. The table lists, per area, how often the player played there, how often KataGo's best was there, and how often the player played in KataGo's area when the best was there."],
+  ["Ownership (board)", "The checkbox shades each point by KataGo's ownership of the position (darker = Black's, lighter = White's, stronger = more certain): what is settled and what is still open."],
+  ["Engine Likeness %", "Share of the player's moves that look engine-assisted: from move 41 on, positions not already decided (score lead under 30 points), a two-state model (human / assisted) compares how likely each move is for an engine and for a human of the player's rank, weighted by how much the position matters; a move counts as engine-like when the chance of 'assisted' is over 50 %; the column is engine-like moves as a % of those moves. <b>Not yet calibrated</b> — a signal for review, not a verdict."],
+  ["AI-like span (moves)", "Individual games: the longest run of the player's consecutive Engine-Likeness moves (first–last move)."],
+])}
+${HOWTO_ROWS("Per move (game view)", [
+  ["Position Difficulty (9d)", "How often a 9d would go wrong (lose 2+ points) in this one position: the 9d profile's probability of each move times whether that move loses 2+ points. Shown only when at least 80 % of the 9d profile's probability has a reliable loss, otherwise –."],
+  ["Board", "Blue circle = KataGo's best move; black / white dot = the move played; a blue circle alone = the player played the best move."],
+  ["Decided", "A position where one side leads by more than 30 points: greyed, and left out of Engine Likeness only (it still counts in every total)."],
+])}
+${HOWTO_ROWS("Reading the tables", [
+  ["Rank", "The rank the player had on that server at the time (pros: new / mid / top). KGS and OGS ranks are different scales — use the Server dropdown to compare like with like; KGS here has dan players only."],
+  ["Era", "Pre-AI (up to 2015), Early AI (2016–2018), Current AI (2019 on), by the game's date."],
+  ["Grey rows", "Fewer than 50 moves of data: shown, but too little to read much into."],
+  ["Not in the tables", "The rank model's estimates and their accuracy (in the training log); games that are not fully analysed."],
+])}
+</details>`;
+
+// ---- views -----------------------------------------------------------------------------------------
+
+function eraOptions() {   // Server and Era: a KGS rank and an OGS rank are different scales, so they can be split
+  const present = SERVERS.filter(([k]) => data.rows.some(r => r.server === k));
+  return `Server <select id="serverpick"><option value="">All</option>` +
+    present.map(([k, name]) => `<option value="${k}" ${k === pick.server ? "selected" : ""}>${name}</option>`).join("") + `</select> ` +
+    `Era <select id="erapick"><option value="">All</option>` +
+    ERAS.map(([k, name]) => `<option value="${k}" ${k === pick.era ? "selected" : ""}>${name}</option>`).join("") + `</select>`;
+}
+function bandSelect(order, onchange) {
+  return `<div class="filters">Rank band <select id="bandpick"><option value="">All</option>` +
+    order.map(b => `<option ${b === pick.band ? "selected" : ""}>${b}</option>`).join("") + `</select> ${eraOptions()}</div>`;
+}
+function hookEra(redraw) {
+  const el = document.getElementById("erapick");
+  if (el) el.onchange = e => { pick.era = e.target.value; applyEra(); redraw(); };
+  const sv = document.getElementById("serverpick");
+  if (sv) sv.onchange = e => { pick.server = e.target.value; applyEra(); redraw(); };
+}
+function hookBand(redraw) {
+  const el = document.getElementById("bandpick");
+  if (el) el.onchange = e => { pick.band = e.target.value; redraw(); };
+  hookEra(redraw);
+}
+
+function overview() {
+  const order = BANDS.filter(b => rows.some(r => r.level === "band" && r.band === b));
+  const shown = pick.band ? [pick.band] : order;
+  main.innerHTML = `<h2>Rank bands${eraTitle()}</h2>` + bandSelect(order) + groupedTable(levelGroups("band", "band", shown), "Rank Band", COLUMNS) +
+    `<h2>Positional play${eraTitle()}</h2>` + groupedTable(levelGroups("band", "band", shown), "Rank Band", POS_COLUMNS) +
+    HOWTO + `<h2>By rank band</h2>` +
+    phaseCharts("band", "band", order);
+  hookBand(overview);
+}
+
+function ranks() {
+  const bandsHere = BANDS.filter(b => rows.some(r => r.level === "rank" && r.band === b));
+  const all = [...new Set(rows.filter(r => r.level === "rank").map(r => r.rank))].sort((a, b) => rankValue(a) - rankValue(b));
+  const order = pick.band ? all.filter(rk => rows.some(r => r.level === "rank" && r.rank === rk && r.band === pick.band)) : all;
+  main.innerHTML = `<h2>Ranks${pick.band ? " in " + pick.band : ""}${eraTitle()}</h2>` + bandSelect(bandsHere) +
+    groupedTable(levelGroups("rank", "rank", order), "Rank", COLUMNS) +
+    HOWTO +
+    `<h2>By individual rank${pick.band ? " in " + pick.band : ""}</h2>` + phaseCharts("rank", "rank", order);
+  hookBand(ranks);
+}
+
+const GAME_COLS = COLUMNS.slice(1).concat([["ai_like_span", "AI-like span (moves)"]]);
+const COLOR_NAMES = { B: "Black", W: "White" };
+const SIDE = { B: "#1f1f1e", W: "#9a9a96" };   // series colour per player in the game graphs
+let gameFilter = { band: "", rank: "", q: "", handicap: "" };
+
+function gameIndex() {   // id -> {file, players: {B: {phase: row}, W: {...}}}
+  const out = {};
+  rows.filter(r => r.level === "game").forEach(r => {
+    const g = out[r.id] = out[r.id] || { id: r.id, file: r.file, players: {} };
+    (g.players[r.color] = g.players[r.color] || {})[r.phase] = r;
+  });
+  return out;
+}
+const handicapLabel = r => r && r.handicap >= 2 ? `Handicap ${r.handicap}` : "Even";
+// A negative loss: the position looked better for the player after the move than KataGo's shallow search estimated
+// before it (search depth / noise). Shown as a gain; averages count it as 0, error logic never counts it.
+const lossText = v => v === null || v === undefined ? "–" : v < 0 ? `${(+v).toFixed(2)} (gain)` : (+v).toFixed(2);
+const playerInfo = (g, c) => {
+  const r = (g.players[c] || {}).overall;
+  if (r) return `${r.player || COLOR_NAMES[c]} (${r.rank})`;
+  const o = (g.players[c === "B" ? "W" : "B"] || {}).overall;   // a player without a usable rank: name from the game
+  return o && o.opponent ? `${o.opponent} (unranked)` : "–";
+};
+
+function games() {
+  const idx = gameIndex();
+  const list0 = Object.values(idx).filter(g => g.players.B || g.players.W);
+  const any = g => (g.players.B || g.players.W).overall || {};
+  const bands = BANDS.filter(b => list0.some(g => ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.band === b)));
+  const ranksL = [...new Set(rows.filter(r => r.level === "game").map(r => r.rank))].sort((a, b) => rankValue(a) - rankValue(b));
+  const has = (g, f) => ["B", "W"].some(c => g.players[c] && g.players[c].overall && f(g.players[c].overall));
+  const list = list0
+    .filter(g => !gameFilter.band || has(g, r => r.band === gameFilter.band))
+    .filter(g => !gameFilter.rank || has(g, r => r.rank === gameFilter.rank))
+    .filter(g => !gameFilter.handicap || (gameFilter.handicap === "even") === (any(g).handicap < 2))
+    .filter(g => !gameFilter.q || (g.file + " " + playerInfo(g, "B") + " " + playerInfo(g, "W")).toLowerCase().includes(gameFilter.q.toLowerCase()))
+    .sort((a, b) => (any(a).date || "").localeCompare(any(b).date || "") || a.file.localeCompare(b.file));
+  let h = `<div class="filters">Rank band <select id="fb"><option value="">all</option>${bands.map(b => `<option ${b === gameFilter.band ? "selected" : ""}>${b}</option>`).join("")}</select>
+    ${eraOptions()}
+    Rank <select id="fr"><option value="">all</option>${ranksL.map(b => `<option ${b === gameFilter.rank ? "selected" : ""}>${b}</option>`).join("")}</select>
+    Handicap <select id="fh"><option value="">all</option><option value="even" ${gameFilter.handicap === "even" ? "selected" : ""}>Even</option><option value="hc" ${gameFilter.handicap === "hc" ? "selected" : ""}>Handicap</option></select>
+    Search <input id="fq" placeholder="game or player" value="${esc(gameFilter.q)}"> <span class="muted">${list.length} games — click one to open it</span></div>`;
+  const side = (g, c, k) => { const r = (g.players[c] || {}).overall; return r ? fmt(k, r[k]) : "–"; };
+  h += `<div class="scroll"><table><tr><th class="l">Game</th><th class="l">Date</th><th class="l">Black</th><th class="l">White</th><th class="l">Handicap</th>` +
+       `<th>Best Move %<br>B · W</th><th>Avg Point Loss<br>B · W</th><th>Game Difficulty (9d) %<br>B · W</th><th>Engine Likeness %<br>B · W</th><th class="l">Note</th></tr>`;
+  list.forEach((g, i) => {
+    const partial = ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? "Partial (not in totals)" : "";
+    h += `<tr class="click ${i % 2 === 0 ? "shade" : ""}" data-go="${esc(g.id)}"><td class="l">${esc(g.file)}</td><td class="l">${esc(any(g).date || "")}</td>` +
+      `<td class="l">${esc(playerInfo(g, "B"))}</td><td class="l">${esc(playerInfo(g, "W"))}</td><td class="l">${handicapLabel(any(g))}</td>` +
+      ["top1", "mean_loss", "difficulty_9d", "engine_like_pct"].map(k => `<td>${side(g, "B", k)} · ${side(g, "W", k)}</td>`).join("") +
+      `<td class="l muted">${partial}</td></tr>`;
+  });
+  main.innerHTML = h + "</table></div>";
+  document.getElementById("fb").onchange = e => { gameFilter.band = e.target.value; games(); };
+  hookEra(games);
+  document.getElementById("fr").onchange = e => { gameFilter.rank = e.target.value; games(); };
+  document.getElementById("fh").onchange = e => { gameFilter.handicap = e.target.value; games(); };
+  document.getElementById("fq").oninput = e => { gameFilter.q = e.target.value; games(); const f = document.getElementById("fq"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); };
+}
+
+function loadGame(id, then) {
+  if (window.GR_GAMES && window.GR_GAMES[id]) return then(window.GR_GAMES[id]);
+  const s = document.createElement("script");
+  s.src = `data/games/${encodeURIComponent(id)}.js`;
+  s.onload = () => then((window.GR_GAMES || {})[id] || null);
+  s.onerror = () => then(null);
+  document.head.appendChild(s);
+}
+
+// ---- board ------------------------------------------------------------------------------------------
+const COLS_GTP = "ABCDEFGHJKLMNOPQRST";
+function gtpXY(mv, size) { if (!mv || mv.toLowerCase() === "pass") return null; return [COLS_GTP.indexOf(mv[0].toUpperCase()), size - parseInt(mv.slice(1))]; }
+function boardAt(board, n) {   // stones after the first n moves (captures applied)
+  const size = board.size, st = new Map(), key = (x, y) => x + "," + y;
+  const nb = (x, y) => [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].filter(([a, b]) => a >= 0 && b >= 0 && a < size && b < size);
+  const group = (x, y) => { const c = st.get(key(x, y)), seen = new Set([key(x, y)]), todo = [[x, y]]; let libs = 0;
+    while (todo.length) { const [a, b] = todo.pop(); nb(a, b).forEach(([p, q]) => { const k = key(p, q), v = st.get(k);
+      if (!v) libs++; else if (v === c && !seen.has(k)) { seen.add(k); todo.push([p, q]); } }); }
+    return { stones: [...seen], libs }; };
+  (board.setup || []).forEach(([c, mv]) => { const p = gtpXY(mv, size); if (p) st.set(key(...p), c); });
+  for (let i = 0; i < n && i < board.moves.length; i++) {
+    const [c, mv] = board.moves[i], p = gtpXY(mv, size); if (!p) continue;
+    st.set(key(...p), c);
+    nb(...p).forEach(([a, b]) => { const v = st.get(key(a, b)); if (v && v !== c) { const g = group(a, b); if (!g.libs) g.stones.forEach(k => st.delete(k)); } });
+    const own = group(...p); if (!own.libs) own.stones.forEach(k => st.delete(k));
+  }
+  return st;
+}
+function boardSVG(board, n, marks) {   // position before move n+1 (after n moves); marks: {played, best}
+  const size = board.size, c = 26, pad = 22, W = pad * 2 + c * (size - 1);
+  let s = `<svg viewBox="0 0 ${W} ${W}" width="100%" role="img" aria-label="board"><rect width="${W}" height="${W}" fill="#e3c08a" rx="4"/>`;
+  for (let i = 0; i < size; i++) {
+    s += `<line x1="${pad}" x2="${pad + c * (size - 1)}" y1="${pad + c * i}" y2="${pad + c * i}" stroke="#5a4a32" stroke-width="0.8"/>` +
+         `<line y1="${pad}" y2="${pad + c * (size - 1)}" x1="${pad + c * i}" x2="${pad + c * i}" stroke="#5a4a32" stroke-width="0.8"/>`;
+  }
+  (size === 19 ? [3, 9, 15] : []).forEach(a => [3, 9, 15].forEach(b => s += `<circle cx="${pad + c * a}" cy="${pad + c * b}" r="3" fill="#5a4a32"/>`));
+  if (marks && marks.own) {   // KataGo's ownership of this position: black / white squares, stronger = more certain
+    for (let i = 0; i < size * size && i < marks.own.length; i++) {
+      const v = (marks.own.charCodeAt(i) - 97) * 10 - 100, a = Math.abs(v) / 100;
+      if (a < 0.15) continue;
+      const x = i % size, y = Math.floor(i / size);
+      s += `<rect x="${pad + c * x - c * 0.45}" y="${pad + c * y - c * 0.45}" width="${c * 0.9}" height="${c * 0.9}" fill="${v > 0 ? "#1f1f1e" : "#ffffff"}" fill-opacity="${(0.55 * a).toFixed(2)}"/>`;
+    }
+  }
+  boardAt(board, n).forEach((col, k) => { const [x, y] = k.split(",").map(Number);
+    s += `<circle cx="${pad + c * x}" cy="${pad + c * y}" r="${c * 0.47}" fill="${col === "B" ? "#1f1f1e" : "#f7f7f4"}" stroke="#333" stroke-width="${col === "B" ? 0 : 0.8}"/>`; });
+  // The user's scheme: blue circle = Best Move; a black / white dot (the mover's colour) = the move played;
+  // the blue circle alone = the player played the Best Move.
+  const same = marks && marks.best && marks.played && marks.best.toUpperCase() === marks.played.toUpperCase();
+  if (marks && marks.best) { const p = gtpXY(marks.best, size); if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.42}" fill="none" stroke="#2a78d6" stroke-width="3"/>`; }
+  if (marks && marks.played && !same) { const p = gtpXY(marks.played, size); if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.22}" fill="${marks.color === "W" ? "#f7f7f4" : "#1f1f1e"}" stroke="${marks.color === "W" ? "#333" : "#f7f7f4"}" stroke-width="1.2"/>`; }
+  return s + "</svg>";
+}
+
+// ---- per-move graphs for both players -------------------------------------------------------------
+function perMoveChart(title, unit, moves, key, opts) {
+  // moves: {B: [...], W: [...]}; x = move number; a cursor line at the current move; click -> jump there.
+  const W = 760, H = 170, L = 40, R = 12, T = 10, B = 24;
+  const all = ["B", "W"].flatMap(c => moves[c].map(m => Object.assign({ color: c }, m))).filter(m => m[key] !== null && m[key] !== undefined);
+  if (!all.length) return "";
+  const xmax = Math.max(...all.map(m => m.move)), xmin = 1;
+  const tf = opts.tf || (v => v), hi = opts.max || Math.max(1, ...all.map(m => tf(m[key])));
+  const x = v => L + (W - L - R) * (v - xmin) / Math.max(1, xmax - xmin), y = v => T + (H - T - B) * (1 - v / hi);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(title)}">`;
+  [60, 150].forEach(b => { if (b < xmax) s += `<line x1="${x(b + 0.5)}" x2="${x(b + 0.5)}" y1="${T}" y2="${H - B}" stroke="${css("--grid")}" stroke-dasharray="4 3"/>`; });
+  (opts.spans || []).forEach(([a, b, c]) => s += `<rect x="${x(a) - 3}" y="${T}" width="${Math.max(6, x(b) - x(a) + 6)}" height="${H - T - B}" fill="${c === "B" ? "#1f1f1e" : "#9a9a96"}" opacity="0.10"/>`);
+  for (let k = 0; k <= 4; k++) { const v = hi * k / 4; s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${css("--grid")}" opacity="0.6"/><text x="${L - 5}" y="${y(v) + 4}" text-anchor="end">${+v.toFixed(hi < 5 ? 1 : 0)}</text>`; }
+  for (let t = 20; t <= xmax; t += 20) s += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
+  const bw = Math.max(1.5, (W - L - R) / (xmax - xmin + 1) - 1);
+  ["B", "W"].forEach(c => {
+    const pts = all.filter(m => m.color === c);
+    if (opts.bars) pts.forEach(m => { const v = Math.min(hi, Math.max(0, tf(m[key])));
+      s += `<rect x="${x(m.move) - bw / 2}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" fill="${SIDE[c]}" opacity="${m.decided ? 0.3 : 1}"/>`; });
+    else {   // a gap in the data stays a gap: a new line segment wherever moves of this player are missing
+      let seg = [];
+      const flush = () => { if (seg.length > 1) s += `<polyline fill="none" stroke="${SIDE[c]}" stroke-width="1.8" points="${seg.join(" ")}"/>`;
+        else if (seg.length === 1) { const [px, py] = seg[0].split(","); s += `<circle cx="${px}" cy="${py}" r="1.8" fill="${SIDE[c]}"/>`; } seg = []; };
+      pts.forEach((m, i) => { if (i && m.move - pts[i - 1].move > 2) flush(); seg.push(`${x(m.move)},${y(Math.min(hi, tf(m[key])))}`); });
+      flush();
+    }
+    if (opts.mark) pts.filter(opts.mark).forEach(m => s += `<circle cx="${x(m.move)}" cy="${y(Math.min(hi, tf(m[key])))}" r="4" fill="#eb6834" stroke="#fff" stroke-width="1"/>`);
+    pts.forEach(m => s += `<rect x="${x(m.move) - bw / 2 - 1}" y="${T}" width="${bw + 2}" height="${H - T - B}" fill="transparent" data-move="${m.move}" data-tip="${esc(opts.tip(m))}" style="cursor:pointer"/>`);
+  });
+  if (opts.cursor) s += `<line x1="${x(opts.cursor)}" x2="${x(opts.cursor)}" y1="${T}" y2="${H - B}" stroke="#2a78d6" stroke-width="1.5"/>`;
+  return `<div class="card" style="margin-bottom:10px"><h3>${esc(title)}</h3><div class="unit">${esc(unit)}</div>${s}</div>`;
+}
+function spansOf(list, color) {
+  const out = []; let a = null, b = null;
+  list.filter(m => m.counted === 1).forEach(m => {
+    if (m.p_assisted > 0.5) { if (a === null) a = m.move; b = m.move; } else if (a !== null) { out.push([a, b, color]); a = null; }
+  });
+  if (a !== null) out.push([a, b, color]);
+  return out;
+}
+
+// ---- one game ---------------------------------------------------------------------------------------
+let cur = { id: null, game: null, move: 0 };
+
+function gameView(id) {
+  const g = gameIndex()[id];
+  if (!g) { main.innerHTML = `<p>Game not found.</p>`; return; }
+  cur = { id, game: null, move: 0 };
+  const any = (g.players.B || g.players.W).overall || {};
+  const groups = ["B", "W"].filter(c => g.players[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: g.players[c] }));
+  main.innerHTML = `<button class="back" id="back">← All games</button>
+    <h2>${esc(g.file)} · ${esc(any.date || "")} · ${handicapLabel(any)}${any.komi !== "" && any.komi !== undefined ? " · komi " + esc(any.komi) : ""}</h2>
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? `<p class="muted">Partially analysed: shown here, not counted in the totals.</p>` : ""}
+    <div id="gametable">${groupedTable(groups, "Player", GAME_COLS, { muteThin: false })}</div>
+    <div class="gamegrid">
+      <div style="position:sticky;top:8px" id="boardbox" class="card">Loading…</div>
+      <div id="graphs"></div>
+    </div>
+    ${HOWTO}<div id="movelist"></div>`;
+  document.getElementById("back").onclick = () => show("games");
+  loadGame(id, data => {
+    if (!data || cur.id !== id) return;
+    cur.game = data;
+    if (data.rows) {   // this game's rows for every phase come with its file (the summary has Overall only)
+      const byColor = {};
+      data.rows.forEach(r => ((byColor[r.color] = byColor[r.color] || {})[r.phase] = r));
+      const full = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c] }));
+      document.getElementById("gametable").innerHTML = groupedTable(full, "Player", GAME_COLS, { muteThin: false });
+    }
+    cur.move = Math.min(1, data.board ? data.board.moves.length : 0);
+    drawGame();
+    const list = ["B", "W"].flatMap(c => data.moves[c]).sort((a, b) => a.move - b.move);
+    document.getElementById("movelist").innerHTML = `<h2>Moves</h2><div class="movescroll"><table><tr><th>Move</th><th class="l">Player</th><th class="l">Phase</th><th class="l">Played</th><th class="l">Best Move</th><th>Point Loss</th><th>Position Difficulty (9d)</th><th>Key Moment</th><th>Tough Spot</th><th>Engine Likeness</th><th class="l">Note</th></tr>` +
+      list.map((m, i) => { const c = data.board ? data.board.moves[m.move - 1][0] : ""; return `<tr class="click ${i % 2 ? "" : "shade"}" data-move="${m.move}"><td>${m.move}</td><td class="l">${COLOR_NAMES[c] || ""}</td><td class="l">${PHASE_NAMES[m.phase]}</td><td class="l">${m.played}</td><td class="l">${m.engine_best}</td>` +
+        `<td>${lossText(m.loss)}</td><td>${m.p_err_9d === null ? "–" : Math.round(100 * m.p_err_9d) + " %"}</td><td>${m.critical ? "●" : ""}</td>` +
+        `<td>${m.p_err_9d >= 0.5 ? "●" : ""}</td><td>${m.p_assisted === null || m.p_assisted === undefined ? "–" : Math.round(100 * m.p_assisted) + " %"}</td>` +
+        `<td class="l muted">${m.decided ? "Decided (no Engine Likeness)" : m.counted === 0 ? "Opening book range (no Engine Likeness)" : ""}</td></tr>`; }).join("") + "</table></div>";
+    const box = document.querySelector("#movelist .movescroll"), rows = box.querySelectorAll("tr");
+    if (rows.length > 11)   // header + 10 moves visible
+      box.style.maxHeight = (rows[11].offsetTop - rows[0].offsetTop) + "px";
+  });
+}
+
+function moveRow(n) {   // the analysed row for move n (either player), or null
+  if (!cur.game) return null;
+  for (const c of ["B", "W"]) { const m = cur.game.moves[c].find(m => m.move === n); if (m) return Object.assign({ color: c }, m); }
+  return null;
+}
+
+function drawGame() {
+  const d = cur.game; if (!d) return;
+  const total = d.board ? d.board.moves.length : 0;
+  const m = moveRow(cur.move);
+  const box = document.getElementById("boardbox");
+  if (d.board) {
+    // Fixed layout: controls, board, then a one-line label and the same detail rows for every move (values or "–"),
+    // so nothing in the panel changes size while stepping through the game.
+    const pct = v => v === null || v === undefined ? "–" : Math.round(100 * v) + " %";
+    const label = `Move ${cur.move} of ${total}` + (m ? ` · ${COLOR_NAMES[m.color]} · ${PHASE_NAMES[m.phase]}` :
+      ` · ${COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || ""} · not analysed`);
+    const mover = COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || "";
+    const boardKey = m ? (m.played.toUpperCase() === m.engine_best.toUpperCase()
+        ? `Before move ${cur.move} — ${mover} to play · ${mover} played the Best Move (blue circle)`
+        : `Before move ${cur.move} — ${mover} to play · ${mover} dot: played · blue circle: Best Move`)
+      : `Before move ${cur.move} — ${mover} to play · ${mover} dot: played · not analysed (no Best Move)`;
+    box.innerHTML = `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <button class="back" data-step="-10">«</button><button class="back" data-step="-1">◀</button>
+        <input type="range" id="mvslider" min="1" max="${total}" value="${cur.move}" style="flex:1">
+        <button class="back" data-step="1">▶</button><button class="back" data-step="10">»</button>
+        <label class="muted" style="white-space:nowrap"><input type="checkbox" id="owntoggle" ${cur.showOwn ? "checked" : ""}> Ownership</label></div>` +
+      boardSVG(d.board, cur.move - 1, Object.assign(m ? { played: m.played, best: m.engine_best, color: m.color }
+        : { played: d.board.moves[cur.move - 1] && d.board.moves[cur.move - 1][1], color: (d.board.moves[cur.move - 1] || [""])[0] },
+        { own: cur.showOwn && d.board.own ? d.board.own[String(cur.move - 1)] : null })) +
+      `<div class="moveinfo">${esc(label)}</div>
+       <div class="movekey">${esc(boardKey)}</div>
+       <table class="movetable">
+        <tr><td class="l">Played / Best Move:</td><td>${m ? `${m.played} / ${m.engine_best}` : "–"}</td></tr>
+        <tr><td class="l">Shape / Best Shape:</td><td>${m && m.shape ? `${m.shape} / ${m.shape_best || "–"}` : "–"}</td></tr>
+        <tr><td class="l">Point Loss:</td><td>${m ? lossText(m.loss) : "–"}</td></tr>
+        <tr><td class="l">Position Difficulty (9d):</td><td>${m ? pct(m.p_err_9d) : "–"}</td></tr>
+        <tr><td class="l">Tough Spot:</td><td>${m && m.p_err_9d >= 0.5 ? "yes" : m ? "no" : "–"}</td></tr>
+        <tr><td class="l">Key Moment:</td><td>${m ? (m.critical ? "yes" : "no") : "–"}</td></tr>
+        <tr><td class="l">Engine Likeness:</td><td>${m ? pct(m.p_assisted) : "–"}</td></tr>
+        <tr><td class="l">Note:</td><td>${m ? (m.decided ? "Decided position (no Engine Likeness)" : "–") : "Not analysed"}</td></tr></table>`;
+    document.getElementById("mvslider").oninput = e => { cur.move = +e.target.value; drawGame(); };
+    const ot = document.getElementById("owntoggle");
+    if (ot) ot.onchange = e => { cur.showOwn = e.target.checked; drawGame(); };
+  } else box.innerHTML = `<p class="muted">No board data for this game.</p>`;
+  const tipf = mm => `Move ${mm.move} (${COLOR_NAMES[mm.color]}, ${PHASE_NAMES[mm.phase]}) — Played / Best Move: ${mm.played} / ${mm.engine_best}; Point Loss: ${lossText(mm.loss)}; Position Difficulty (9d): ${mm.p_err_9d === null ? "–" : Math.round(100 * mm.p_err_9d) + " %"}; Engine Likeness: ${mm.p_assisted == null ? "–" : Math.round(100 * mm.p_assisted) + " %"} — click to show on the board`;
+  const spans = spansOf(d.moves.B, "B").concat(spansOf(d.moves.W, "W"));
+  document.getElementById("graphs").innerHTML =
+    `<div class="keys"><span style="--c:${SIDE.B}">Black</span><span style="--c:${SIDE.W}">White</span><span style="--c:#eb6834">Tough Spot</span><span style="--c:#2a78d6">current move</span></div>` +
+    perMoveChart("Point Loss", "points (capped at 15); dashed lines: Opening | Middle | Endgame", d.moves, "loss",
+      { bars: true, tf: v => Math.max(0, v), max: 15, tip: tipf, cursor: cur.move }) +
+    perMoveChart("Position Difficulty (9d)", "how often a 9d would go wrong in this position, %; dots: Tough Spots", d.moves, "p_err_9d",
+      { tf: v => 100 * v, max: 100, mark: mm => mm.p_err_9d >= 0.5, tip: tipf, cursor: cur.move }) +
+    perMoveChart("Engine Likeness", "P(AI-assisted), % (uncalibrated); shaded: AI-like spans" + (spans.length ? " — " + spans.map(s => `${COLOR_NAMES[s[2]]} ${s[0] === s[1] ? s[0] : s[0] + "–" + s[1]}`).join(", ") : ""),
+      d.moves, "p_assisted", { tf: v => 100 * v, max: 100, spans, tip: tipf, cursor: cur.move }) +
+    (d.board ? `<h3 class="sub">Where they play</h3><div class="wheregrid">` +
+      ["B", "W"].map(col => whereCard(d, col)).join("") + `</div>` : "");
+}
+
+// ---- where they play: distribution map (4th-line areas) and the area table -----------------------------
+const AREAS = [["corner-tl", "Corner, top left"], ["corner-tr", "Corner, top right"], ["corner-bl", "Corner, bottom left"],
+  ["corner-br", "Corner, bottom right"], ["side-top", "Side, top"], ["side-bottom", "Side, bottom"], ["side-left", "Side, left"],
+  ["side-right", "Side, right"], ["center", "Center"]];
+const LIKED_PCT = 10;   // a move KataGo liked: at least 10 % of the best move's visits (Match); otherwise greyed by its loss
+function distMap(board, moves, col, which) {
+  // which = "played": the player's moves (solid when KataGo liked it, greyed by the loss otherwise);
+  //         "best":   KataGo's best move in the same positions (blue)
+  const size = board.size, c = 15, pad = 10, W = pad * 2 + c * (size - 1);
+  const band = 4, lo = pad - c * 0.5, inner0 = pad + c * (band - 0.5), inner1 = pad + c * (size - band - 0.5), hi = pad + c * (size - 0.5);
+  let s = `<svg viewBox="0 0 ${W} ${W}" width="100%" role="img" aria-label="${which === "best" ? "KataGo's best moves" : "moves played"}">`;
+  // area tints: corners darkest, sides lighter, center plain
+  s += `<rect x="${lo}" y="${lo}" width="${hi - lo}" height="${hi - lo}" fill="#efe9db" rx="3"/>`;
+  [[lo, inner0], [inner1, hi]].forEach(([x0, x1]) => [[lo, inner0], [inner1, hi]].forEach(([y0, y1]) =>
+    s += `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#d9cfb6"/>`));
+  [[inner0, inner1, lo, inner0], [inner0, inner1, inner1, hi], [lo, inner0, inner0, inner1], [inner1, hi, inner0, inner1]].forEach(([x0, x1, y0, y1]) =>
+    s += `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#e6dec9"/>`);
+  for (let i = 0; i < size; i++)
+    s += `<line x1="${pad}" x2="${pad + c * (size - 1)}" y1="${pad + c * i}" y2="${pad + c * i}" stroke="#c2b79e" stroke-width="0.5"/>` +
+         `<line y1="${pad}" y2="${pad + c * (size - 1)}" x1="${pad + c * i}" x2="${pad + c * i}" stroke="#c2b79e" stroke-width="0.5"/>`;
+  const base = col === "B" ? [31, 31, 30] : [250, 250, 247], grey = [176, 176, 171];
+  moves.forEach(m => {
+    const mv = which === "best" ? m.engine_best : m.played;
+    const p = gtpXY(mv, size); if (!p) return;
+    const cx = pad + c * p[0], cy = pad + c * p[1];
+    if (which === "best") {
+      s += `<circle cx="${cx}" cy="${cy}" r="${c * 0.36}" fill="#2a78d6" fill-opacity="0.75"><title>Move ${m.move}: KataGo's best ${mv}${m.played === mv ? " (the player played it)" : ", played " + m.played}</title></circle>`;
+      return;
+    }
+    const liked = m.liked === 1 || (m.accuracy != null && m.accuracy >= LIKED_PCT);
+    const t = liked ? 0 : 0.35 + 0.65 * Math.min(Math.max(m.loss || 0, 0), 10) / 10;   // worse = greyer
+    const rgb = base.map((v, i) => Math.round(v + (grey[i] - v) * t));
+    s += `<circle cx="${cx}" cy="${cy}" r="${c * 0.42}" fill="rgb(${rgb})" stroke="${col === "W" ? "#666" : "none"}" stroke-width="0.7"><title>Move ${m.move}: ${mv} — ${liked ? "KataGo liked it" : "Point Loss " + lossText(m.loss)} (KataGo's best ${m.engine_best})</title></circle>`;
+  });
+  return s + "</svg>";
+}
+function whereCard(d, col) {
+  const moves = (d.moves[col] || []).filter(m => m.area);
+  if (!moves.length) return "";
+  const n = moves.length, pc = (a, b) => b ? Math.round(100 * a / b) + "%" : "–";
+  const name = COLOR_NAMES[col];
+  // the area table laid out like the board (top-left corner in the top-left cell, ...)
+  const GRID = [["corner-tl", "side-top", "corner-tr"], ["side-left", "center", "side-right"], ["corner-bl", "side-bottom", "corner-br"]];
+  const LABEL = Object.fromEntries(AREAS);
+  const cell = k => {
+    const played = moves.filter(m => m.area === k).length, best = moves.filter(m => m.area_best === k);
+    const same = best.filter(m => m.same_area === 1).length;
+    return `<td class="areacell ${k.split("-")[0]}"><div class="an">${LABEL[k].replace("Corner, ", "").replace("Side, ", "")}</div>
+      <div><b>${pc(played, n)}</b> <span class="muted">${name}</span></div>
+      <div><b>${pc(best.length, n)}</b> <span class="muted">KataGo</span></div>
+      <div class="muted">agree ${pc(same, best.length)}</div></td>`;
+  };
+  const cnt = k => moves.filter(m => m[k] === 1).length;
+  const stat = (label, v, tip) => `<div class="stat" title="${esc(tip)}"><div class="sv">${v}</div><div class="sl">${label}</div></div>`;
+  return `<div class="card"><div style="font-weight:600;margin-bottom:8px">${name}</div>
+    <div class="maps">
+      <div><div class="maptitle">${name}'s moves</div>${distMap(d.board, moves, col, "played")}</div>
+      <div><div class="maptitle">KataGo's best moves</div>${distMap(d.board, moves, col, "best")}</div>
+    </div>
+    <div class="mapkey"><span class="k1" style="background:${col === "W" ? "#fafaf7" : "#1f1f1e"};border:${col === "W" ? "1px solid #666" : "none"}"></span> KataGo liked the move (10%+ of the best move's visits)
+      <span class="k2"></span> greyer = the worse the move <span class="k3"></span> KataGo's best · hover a stone for details ·
+      shading: corners / sides / center at the 4th line</div>
+    <table class="areagrid">${GRID.map(r => `<tr>${r.map(cell).join("")}</tr>`).join("")}</table>
+    <div class="muted" style="margin:4px 0 8px">Each area: share of ${name}'s moves there, share of KataGo's best moves there, and how often ${name} also played there when KataGo's best was there. Same area overall: <b>${pc(cnt("same_area"), n)}</b>.</div>
+    <div class="stats">
+      ${stat("Direction errors", pc(cnt("direction_error"), n), "lost 2+ points in a different area from KataGo's best")}
+      ${stat("Local errors", pc(cnt("local_error"), n), "lost 2+ points in the same area as KataGo's best")}
+      ${stat("Resolved-area play", pc(cnt("resolved_play"), n), "played where ownership was already decided while KataGo's best was open")}
+      ${stat("Lower-value area", pc(cnt("low_value_area"), n), "a different area from KataGo's best, losing 1+ point")}
+      ${stat("Forced errors", pc(cnt("forced_error"), cnt("forced_faced")), cnt("forced_faced") + " forcing moves faced; answered locally but lost 2+")}
+    </div></div>`;
+}
+
+function step(k) { if (!cur.game || !cur.game.board) return; cur.move = Math.max(1, Math.min(cur.game.board.moves.length, cur.move + k)); drawGame(); }
+
+// ---- routing, hover -----------------------------------------------------------------------------
+function show(tab, arg) {
+  if (tab !== "game") cur = { id: null, game: null, move: 0 };
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  ({ overview, ranks, games, game: () => gameView(arg) })[tab]();
+  location.hash = arg ? `${tab}/${encodeURIComponent(arg)}` : tab;
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => show(b.dataset.tab));
+main.addEventListener("click", e => {
+  const go = e.target.closest("[data-go]"); if (go) return show("game", go.dataset.go);
+  const st = e.target.closest("[data-step]"); if (st) return step(+st.dataset.step);
+  const mv = e.target.closest("[data-move]"); if (mv && cur.game) { cur.move = +mv.dataset.move; drawGame(); }
+});
+document.addEventListener("keydown", e => {
+  if (!cur.game || document.activeElement.tagName === "INPUT" && document.activeElement.type !== "range") return;
+  if (e.key === "ArrowLeft") { step(-1); e.preventDefault(); } else if (e.key === "ArrowRight") { step(1); e.preventDefault(); }
+});
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (t && t.dataset.tip) { tip.textContent = t.dataset.tip; tip.style.display = "block";
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px"; tip.style.top = (e.clientY + 14) + "px"; }
+  else tip.style.display = "none";
+});
+const [t0, a0] = location.hash.slice(1).split("/");
+show(["overview", "ranks", "games", "game"].includes(t0) ? t0 : "overview", a0 ? decodeURIComponent(a0) : undefined);
+</script>
+</body>
+</html>
