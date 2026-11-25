@@ -133,15 +133,19 @@ const ERAS = [["pre", "Pre-AI (≤2015)"], ["early", "Early AI (2016–18)"], ["
 const ERA_NAME = Object.fromEntries(ERAS);
 const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["pro", "Pro"]];
 const SERVER_NAME = Object.fromEntries(SERVERS);
-let pick = { band: "", era: "", server: "" };   // the band and era chosen in the dropdowns (shared by every tab)
+const COLORS = [["B", "Black"], ["W", "White"]];   // a rank's Black and White players are measured apart
+const COLOR_NAME = Object.fromEntries(COLORS);
+let pick = { band: "", era: "", server: "", color: "" };   // the dropdown choices (shared by every tab)
 let rows = [];
 function applyEra() {
   rows = data.rows.filter(r => r.level === "game"
-    ? (!pick.era || r.era === pick.era) && (!pick.server || r.server === pick.server)
-    : (r.era || "all") === (pick.era || "all") && (r.server || "all") === (pick.server || "all"));
+    ? (!pick.era || r.era === pick.era) && (!pick.server || r.server === pick.server) && (!pick.color || r.color === pick.color)
+    : (r.era || "all") === (pick.era || "all") && (r.server || "all") === (pick.server || "all") &&
+      (r.color || "all") === (pick.color || "all"));
 }
 applyEra();
-const eraTitle = () => (pick.server ? " · " + SERVER_NAME[pick.server] : "") + (pick.era ? " · " + ERA_NAME[pick.era] : "");
+const eraTitle = () => (pick.server ? " · " + SERVER_NAME[pick.server] : "") + (pick.era ? " · " + ERA_NAME[pick.era] : "") +
+  (pick.color ? " · as " + COLOR_NAME[pick.color] : "");
 document.getElementById("stamp").textContent = `Generated ${data.generated || "?"} · ${new Set(rows.filter(r => r.level === "game").map(r => r.id)).size} games · ` +
   `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0).map(r => r.id)).size} games in the totals`;
 const main = document.getElementById("main");
@@ -296,7 +300,9 @@ ${HOWTO_ROWS("Reading the tables", [
   ["Rank", "The rank the player had on that server at the time (pros: new / mid / top). KGS and OGS ranks are different scales — use the Server dropdown to compare like with like; KGS here has dan players only."],
   ["Era", "Pre-AI (up to 2015), Early AI (2016–2018), Current AI (2019 on), by the game's date."],
   ["Grey rows", "Fewer than 50 moves of data: shown, but too little to read much into."],
-  ["Not in the tables", "The rank model's estimates and their accuracy (in the training log); games that are not fully analysed."],
+  ["Performance Rank (game view, next to each player)", "The level this player played at in this game. Every rank from 15k to 9d has a profile for Black and one for White (a 7d as Black and a 7d as White are measured apart), built from all the analysed games of players declared at that rank: how often their moves match each of KataGo's 17 human rank profiles, point loss, blunders, top-move %. The player's moves are compared with every profile of their colour; the result is a probability for each rank, and the Performance Rank is their weighted average. Measured without any of the player's own games in the profiles. ± = how precisely the game's moves pin it down (rating a game's odd and even moves separately: about 1.2 ranks for a whole game; a game with fewer or less telling moves gets a wider ±). A player can play above or below their declared rank in any one game; the declared rank is not used."],
+  ["Colour", "Band and rank rows for Black players only, White players only, or both."],
+  ["Not in the tables", "The rank model's accuracy (in the training log); games that are not fully analysed."],
 ])}
 </details>`;
 
@@ -307,7 +313,9 @@ function eraOptions() {   // Server and Era: a KGS rank and an OGS rank are diff
   return `Server <select id="serverpick"><option value="">All</option>` +
     present.map(([k, name]) => `<option value="${k}" ${k === pick.server ? "selected" : ""}>${name}</option>`).join("") + `</select> ` +
     `Era <select id="erapick"><option value="">All</option>` +
-    ERAS.map(([k, name]) => `<option value="${k}" ${k === pick.era ? "selected" : ""}>${name}</option>`).join("") + `</select>`;
+    ERAS.map(([k, name]) => `<option value="${k}" ${k === pick.era ? "selected" : ""}>${name}</option>`).join("") + `</select> ` +
+    `Colour <select id="colorpick"><option value="">Both</option>` +
+    COLORS.map(([k, name]) => `<option value="${k}" ${k === pick.color ? "selected" : ""}>${name}</option>`).join("") + `</select>`;
 }
 function bandSelect(order, onchange) {
   return `<div class="filters">Rank band <select id="bandpick"><option value="">All</option>` +
@@ -318,6 +326,8 @@ function hookEra(redraw) {
   if (el) el.onchange = e => { pick.era = e.target.value; applyEra(); redraw(); };
   const sv = document.getElementById("serverpick");
   if (sv) sv.onchange = e => { pick.server = e.target.value; applyEra(); redraw(); };
+  const co = document.getElementById("colorpick");
+  if (co) co.onchange = e => { pick.color = e.target.value; applyEra(); redraw(); };
 }
 function hookBand(redraw) {
   const el = document.getElementById("bandpick");
@@ -526,7 +536,7 @@ function gameView(id) {
     if (data.rows) {   // this game's rows for every phase come with its file (the summary has Overall only)
       const byColor = {};
       data.rows.forEach(r => ((byColor[r.color] = byColor[r.color] || {})[r.phase] = r));
-      const full = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c] }));
+      const full = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}` + perfText(byColor[c].overall), rows: byColor[c] }));
       document.getElementById("gametable").innerHTML = groupedTable(full, "Player", GAME_COLS, { muteThin: false });
     }
     cur.move = Math.min(1, data.board ? data.board.moves.length : 0);
@@ -541,6 +551,13 @@ function gameView(id) {
     if (rows.length > 11)   // header + 10 moves visible
       box.style.maxHeight = (rows[11].offsetTop - rows[0].offsetTop) + "px";
   });
+}
+
+// Performance Rank: the level this player played at in this game, from the rank profiles of their colour (7d-B /
+// 7d-W); ± = how precisely the game's moves measure it (split-half: about 1.2 ranks for a whole game).
+function rankText(v) { return v >= 1 ? `${v.toFixed(1)}d` : v <= 0 ? `${(1 - v).toFixed(1)}k` : v >= 0.5 ? "1d" : "1k"; }
+function perfText(r) {
+  return r && r.performance != null ? ` · Performance Rank ${rankText(r.performance)} ± ${r.performance_sd.toFixed(1)}` : "";
 }
 
 function moveRow(n) {   // the analysed row for move n (either player), or null

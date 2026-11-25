@@ -866,3 +866,70 @@ improves.
   Gifu/GoRanks; push_site.py commits from the Gifu folder with a temporary index and pushes to goranks main. The
   Pages workflow is split into build and deploy jobs (in one job, deploy-pages twice failed to find the artifact just
   uploaded). Removed from Gifu: the gifu-training branch, Gifu's Pages site, the /mnt/c/Gifu-training worktree.
+
+## Rank profiles: every rank as a vector, a game matched against all of them (2026-11-25, the user's idea; 6,176 ratings)
+`gorank/rank_profiles.py`. Per declared rank 15k..9d a profile = mean feature vector (model F's inputs), smoothed over
+neighbouring ranks, with one shared covariance; a game's likelihood under each profile -> posterior over ranks (flat
+prior) -> estimate = posterior mean, ± = posterior sd. Spread fitted by log score on the training folds (fitting it to
+68 % coverage flattened every posterior to the middle: MAE 4.9, rejected). CV by player:
+- profiles alone: MAE 2.18 (ridge F 2.00); better at 1d-5d (MAE 1.6-2.0) and less pulled at the weak end, worse at kyu 4-12k.
+- hybrid (ridge F's score as the one input, profiles of that score per rank): MAE 2.07.
+- the ± is honest: declared rank inside ±1x on 73 %, inside ±2x on 95-96 %; median ± 2.9-3.0 ranks for one game. Games
+  with a narrow ± do have smaller errors (MAE 1.97 vs 2.43 for the widest third), but the ± varies little (2.0-3.7).
+Reading: a single game supports about "4d ± 3", not ± 1.6 — the game-to-game swing (sd 1.8) and declared-rank noise
+are in every estimate. Plan: keep ridge F for the point, report the posterior ± and band probabilities with it, and
+combine a player's games (the ± shrinks with more games) for the account rank.
+
+## Rank profiles per phase, phases and measures weighted (2026-11-25, the user's follow-up; `rank_profiles.py --phases`)
+Profiles per phase (opening 1-60, middle 61-150, endgame 151+), each phase a posterior over ranks; phases combined with
+weights fitted by log score; inside a phase each measure is weighted by how well it separates ranks given the others
+(shared covariance — noisy or redundant measures get little weight). CV by player, 6,176 ratings:
+- each phase alone: opening MAE 2.58 (± 3.6), middle 2.46 (± 3.5), endgame 2.82 (± 3.9, 4,608 games reach it).
+- fitted weights: opening 36 %, middle 36 %, endgame 27 % (same in every fold) -> combined MAE 2.19, median ± 3.0,
+  calibrated (73 % inside ±1x, 95 % inside ±2x). Same as the one-profile model (2.18): weighting by phase adds nothing.
+- measure weights (middle game): the human-net likelihood over the rank grid ~21 %, the likelihood shape across rank
+  profiles most of the rest; engine measures (loss, blunders, top-move %) get little once those are in — the human
+  profiles already predict the moves they summarise (matches the earlier test: Accuracy, Match, Key Move, Tough
+  Spots, area / shape measures added nothing).
+- games rated 3+ ranks above their declared rank (805): every phase says so on its own (opening +5.2, middle +5.1,
+  endgame +5.0); 3+ below (705): -4.4 / -4.6 / -4.2. A far-off game is not one misleading phase: the whole game
+  played at that level (a real over/under-performance, or a mis-ranked account). The ± is set by that, not by weighting.
+
+## Declared-rank priors and grouped games per player (2026-11-25, the user's questions; `rank_profiles.py --phases`)
+Game posterior (phases combined) x the declared rank: hard windows (only the declared rank's profile and its ±1 / ±2
+neighbours) and soft Gaussian priors (± 1 / 2 / 3). Scored on how the same player plays in their OTHER games (13,932
+pairs, 896 players; target = the other game's own estimate): declared rank only MAE 1.91; this game only 1.25;
+±1 window 1.81; ±2 window 1.65; soft ±1 1.78, ±2 1.52, ±3 1.32. The game alone describes the player's play elsewhere
+best; a declared-rank prior narrows the ± (0.8-2.0) but moves the estimate back toward a label that is off by ~2
+ranks for many accounts. (Caveat: the target shares the model's view of the player. The user cares about rank, not
+results; a cross-game win check, n=383, was 53-58 % for every variant — too small to separate them.)
+Grouped games, one player (posteriors multiplied, vs declared rank, players whose rank stayed the same):
+1 game MAE 2.30 ± 3.0 | 2 games 1.64 ± 2.2 | 3 games 1.38 ± 1.9 | 5 games 1.14 ± 1.4 (33 players) | 10 games 0.60 ± 1.2
+(3 players). The ± stays calibrated (71-76 % inside ±1x). Reading: "7.6d ± 1.6" is a 4-5 game player rank. The data has
+few players with many games (selection spread games across players): to measure 5-20 games properly, the next data
+rounds should take ~10 games each from a set of players.
+
+## How precise is one game? Split-half test (2026-11-25, the user's question; `rank_profiles.py --split`)
+Each player-game rated twice, from its odd and its even moves (~54 moves each), same profile model, CV by player.
+Halves differ by median 1.31 ranks (sd 2.35) -> measurement noise ± 1.66 per half, ≈ ± 1.17 for a whole game (~108
+moves). Error variance vs declared 8.71 = measurement 1.38 + 7.34 not from the game's measurement (the player's
+game-to-game swing, declared-rank error, KGS/OGS scale, a style the model misreads). So one game pins the level
+played to about ± 1.2 ranks (68 %): roughly a 2-3 rank window. The ± 3 earlier was "game vs the account's declared
+rank", which carries those other errors. Odd/even halves share the game's positions, so ± 1.2 may be slightly
+optimistic. Display plan: Performance Rank ± 1.2 (precision of the game's measurement), and the player rank from
+grouped games with its own ±.
+
+## Advice from the author of kifubara (2026-11-25), checked against our data
+1. "Weaker than ~5k OGS has higher variance; stronger players reach about ± 1-1.5": the game's own measurement ±
+   (split-half scaled) is flat, 1.0-1.3 in every band, but the error vs the declared rank is larger for kyu players:
+   median 1.89 (15-10k), 1.80 (9-5k), 1.65 (4-1k), 1.51 (1-4d), 1.73 (5-9d: 9d ceiling). Kyu ranks swing more /
+   are less reliable labels, not measured less precisely. Matches his experience.
+2. "Human SL ranks are old, calibrate per server": the profiles are built from our own labelled games, so the SL
+   net's rank names are only inputs. Profiles per server: MAE 2.24 (one set 2.18); per server x era 2.33 (KGS early
+   3.99, bias -3.4). Worse: KGS has only dan games here (the u-go.net archive keeps games with a 4d+ player), too
+   narrow for its own profiles. Calibration as an offset per server x era (ridge E/F already has it) until each server
+   covers the whole range; per-server profiles once OGS/Fox kyu data from the same servers is in.
+3. "Use the human policy, not playouts": the rank features already are the raw humanPolicy (the policy of each
+   profile at the position; features.py reads `humanPolicy`, not the search). The 100-visit KataGo-Human searches
+   on the vast runs do not feed the rank model, so the next GPU runs can query the 17 profiles at maxVisits=1
+   (policy only) and spend the time on the 1,000-visit engine search: much faster batches.
