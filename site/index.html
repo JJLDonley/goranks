@@ -152,7 +152,8 @@
 <dialog id="helpdlg"><form method="dialog"><h3></h3><div class="helpbody"></div><div style="text-align:right"><button>Close</button></div></form></dialog>
 </div>
 <div class="tip" id="tip"></div>
-<script src="data/summary.js"></script>
+<script>const DATA_VERSION = "20261127023522";   // push_site.py stamps each publish, so browsers never keep an older copy of the data</script>
+<script src="data/summary.js?v=20261127023522"></script>
 <script>
 "use strict";
 // Names fixed by the user (GoRanks/CLAUDE.md): phases and columns, in this order.
@@ -188,7 +189,7 @@ const data = window.GR_SUMMARY || { rows: [] };
 // Eras (data separation): band and rank rows come per era plus "all"; game rows carry their game's era.
 const ERAS = [["pre", "Pre-AI (≤2015)"], ["early", "Early AI (2016–18)"], ["cur", "Current AI (2019+)"]];
 const ERA_NAME = Object.fromEntries(ERAS);
-const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["pro", "Pro"]];
+const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["pro", "Pro"], ["ext", "Tournament"]];
 const SERVER_NAME = Object.fromEntries(SERVERS);
 const COLORS = [["B", "Black"], ["W", "White"]];   // a rank's Black and White players are measured apart
 const COLOR_NAME = Object.fromEntries(COLORS);
@@ -522,7 +523,8 @@ function games() {
     .filter(g => !gameFilter.rank || has(g, r => r.rank === gameFilter.rank))
     .filter(g => !gameFilter.handicap || gameFilter.handicap === handicapKind(any(g)))
     .filter(g => !gameFilter.q || (g.file + " " + playerInfo(g, "B") + " " + playerInfo(g, "W")).toLowerCase().includes(gameFilter.q.toLowerCase()))
-    .sort((a, b) => (any(a).date || "").localeCompare(any(b).date || "") || a.file.localeCompare(b.file));
+    .sort((a, b) => (!!any(b).external - !!any(a).external)   // tournament games (Albert's KPMC) first
+      || (any(b).date || "").localeCompare(any(a).date || "") || a.file.localeCompare(b.file));   // then newest first
   let h = `<div class="filters">Rank band <select id="fb"><option value="">all</option>${bands.map(b => `<option ${b === gameFilter.band ? "selected" : ""}>${b}</option>`).join("")}</select>
     ${eraOptions()}
     Rank <select id="fr"><option value="">all</option>${ranksL.map(b => `<option ${b === gameFilter.rank ? "selected" : ""}>${b}</option>`).join("")}</select>
@@ -553,7 +555,7 @@ function games() {
 function loadGame(id, then) {
   if (window.GR_GAMES && window.GR_GAMES[id]) return then(window.GR_GAMES[id]);
   const s = document.createElement("script");
-  s.src = `data/games/${encodeURIComponent(id)}.js`;
+  s.src = `data/games/${encodeURIComponent(id)}.js?v=${DATA_VERSION}`;
   s.onload = () => then((window.GR_GAMES || {})[id] || null);
   s.onerror = () => then(null);
   document.head.appendChild(s);
