@@ -134,6 +134,41 @@
   /* Moves list: 10 rows visible, the rest scroll; the column labels stay in view (sticky header). */
   .movescroll { overflow: auto; border-bottom: 1px solid var(--grid); }
   .movescroll th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
+  /* Phones (the user, 2026-11-27): one column, no fixed minimum width; charts keep a readable size and scroll
+     sideways instead of shrinking their text; tables scroll; form controls at 16 px so phones do not zoom in. */
+  @media (max-width: 760px) {
+    .wrap { min-width: 0; }
+    html { overflow-x: hidden; }
+    header { padding: 12px 12px 0; }
+    h1 { font-size: 19px; }
+    main { padding: 10px 10px 32px; }
+    nav { padding: 8px 8px 0; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+    nav button { padding: 8px 10px; white-space: nowrap; flex: none; }
+    .filters { gap: 6px 8px; }
+    .filters select, .filters input { font-size: 16px; max-width: 100%; }
+    .filters input { flex: 1 1 140px; min-width: 0; }
+    .gv, .pcards, .probs, .grid, .maps, .gamegrid { grid-template-columns: 1fr !important; }
+    .pcard .kpis { grid-template-columns: repeat(2, 1fr); }
+    .movestrip { padding: 8px 10px; }
+    .movestrip .mhead { flex-direction: column; gap: 2px; }
+    .movestrip .mcells { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stats.onerow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .gtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .gtabs button { white-space: nowrap; flex: none; }
+    .chart, #gpanel { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .chart svg.full, #gpanel svg.full { min-width: 560px; }
+    .scroll, .movescroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { font-size: 12px; }
+    table.mdef th, table.mdef td { display: block; width: auto; padding: 4px 0; border-bottom: 0; }
+    table.mdef tr { display: block; border-bottom: 1px solid var(--grid); padding: 6px 0; }
+    .method { font-size: 14px; }
+    #helpdlg { max-width: 92vw; padding: 12px 14px; }
+    .card { padding: 10px; }
+    main h2, main h3 { overflow-wrap: anywhere; }
+    .gv > *, .pcards > *, .probs > *, .grid > *, .maps > *, .wheregrid > *, .card { min-width: 0; max-width: 100%; }
+    #boardbox > div:first-child { flex-wrap: nowrap; }
+    #boardbox .back { padding: 4px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -152,8 +187,8 @@
 <dialog id="helpdlg"><form method="dialog"><h3></h3><div class="helpbody"></div><div style="text-align:right"><button>Close</button></div></form></dialog>
 </div>
 <div class="tip" id="tip"></div>
-<script>const DATA_VERSION = "20261127023522";   // push_site.py stamps each publish, so browsers never keep an older copy of the data</script>
-<script src="data/summary.js?v=20261127023522"></script>
+<script>const DATA_VERSION = "20261127023909";   // push_site.py stamps each publish, so browsers never keep an older copy of the data</script>
+<script src="data/summary.js?v=20261127023909"></script>
 <script>
 "use strict";
 // Names fixed by the user (GoRanks/CLAUDE.md): phases and columns, in this order.
