@@ -34,7 +34,7 @@
   td.areacell .an { font-weight: 600; color: var(--ink-2); margin-bottom: 2px; text-transform: capitalize; }
   .stats { display: flex; flex-wrap: wrap; gap: 8px; }
   .stat { background: var(--band); border-radius: 4px; padding: 6px 10px; min-width: 110px; }
-  .stat .sv { font-size: 16px; font-weight: 600; } .stat .sl { font-size: 11px; color: var(--muted); }
+  .stat .sv { font-size: 16px; font-weight: 600; } .stat .sl { font-size: 11px; color: var(--ink); }
   h3.sub { font-size: 14px; margin: 18px 0 8px; }
   .gamegrid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 8px; }
   /* Game page (2026-11-27 redesign): player cards, a large board on the left, one tabbed analysis panel on the right */
@@ -56,6 +56,8 @@
   .movestrip .ml { font-size: 11px; color: var(--ink); }
   .movestrip .mnote { font-size: 12px; margin-top: 6px; }
   @media (max-width: 1100px) { .movestrip .mcells { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .stats.onerow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  .stats.onerow > * { min-width: 0; margin: 0; }
   .gv { display: grid; grid-template-columns: minmax(420px, 1.05fr) minmax(420px, 1fr); gap: 16px; align-items: start; }
   .gv-board { position: sticky; top: 8px; }
   .gv-panel { min-height: 400px; }
@@ -979,9 +981,7 @@ function whereCard(d, col) {
   const cnt = k => moves.filter(m => m[k] === 1).length;
   const stat = (label, v, tip) => `<div class="stat" title="${esc(tip)}"><div class="sv">${v}</div><div class="sl">${label}</div></div>`;
   return `<div class="card"><div style="font-weight:600;margin-bottom:8px">${name}</div>
-    <table class="areagrid">${GRID.map(r => `<tr>${r.map(cell).join("")}</tr>`).join("")}</table>
-    <div class="muted" style="margin:4px 0 8px">Each area: share of ${name}'s moves there, share of KataGo's best moves there, and how often ${name} also played there when KataGo's best was there. Same area overall: <b>${pc(cnt("same_area"), n)}</b>.</div>
-    <div class="stats">
+    <div class="stats onerow">
       ${stat("Direction errors", pc(cnt("direction_error"), n), "lost 2+ points in a different area from KataGo's best")}
       ${stat("Local errors", pc(cnt("local_error"), n), "lost 2+ points in the same area as KataGo's best")}
       ${stat("Resolved-area play", pc(cnt("resolved_play"), n), "played where ownership was already decided while KataGo's best was open")}
@@ -994,6 +994,8 @@ function whereCard(d, col) {
     <div class="mapkey"><span class="k1" style="background:${col === "W" ? "#fafaf7" : "#1f1f1e"};border:${col === "W" ? "1px solid #666" : "none"}"></span> KataGo liked the move (10%+ of the best move's visits)
       <span class="k2"></span> greyer = the worse the move <span class="k3"></span> KataGo's best · hover a stone for details ·
       shading: corners / sides / center at the 4th line</div>
+    <table class="areagrid">${GRID.map(r => `<tr>${r.map(cell).join("")}</tr>`).join("")}</table>
+    <div class="muted" style="margin:4px 0 8px">Each area: share of ${name}'s moves there, share of KataGo's best moves there, and how often ${name} also played there when KataGo's best was there. Same area overall: <b>${pc(cnt("same_area"), n)}</b>.</div>
 </div>`;
 }
 
