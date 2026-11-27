@@ -41,15 +41,33 @@
   .pcards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 14px; }
   .pcard { background: var(--panel); border: 1px solid var(--grid); border-radius: 10px; padding: 12px 14px; }
   .pcard .who { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
-  .pcard .stone { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #444; flex: none; }
+  .pcard .stone, .perfcard .stone { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #444; flex: none; }
   .pcard .perf { font-size: 26px; font-weight: 700; margin-top: 6px; letter-spacing: -0.3px; }
   .pcard .perf small { font-size: 14px; font-weight: 500; color: var(--ink); }
   .pcard .perflabel { font-size: 12px; color: var(--ink); }
+  #perftable .card { margin-bottom: 12px; }
+  .perfcard .gtabs { align-items: center; }
+  .perfcard .gtabs .perfrange { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .perfcard table { width: 100%; }
+  .perfcard .who { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .perfcard .pm { color: var(--muted); font-size: 12px; font-weight: 400; }
   .pcard .note { font-size: 12px; color: #9a5b12; margin-top: 2px; min-height: 16px; }
   .pcard .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
   .pcard .kpi .v { font-size: 17px; font-weight: 600; }
   .pcard .kpi .l { font-size: 11px; color: var(--ink); }
   .pnote { font-size: 12px; margin-top: 2px; }
+  .colbtn { font: inherit; padding: 4px 10px; border: 1px solid var(--grid); border-radius: 4px; background: var(--panel); cursor: pointer; }
+  #coldlg { max-width: 560px; border: 1px solid #bbb; border-radius: 8px; padding: 16px 20px; color: #111; font-size: 13.5px; }
+  #coldlg::backdrop { background: rgba(0, 0, 0, 0.25); }
+  #coldlg h3 { margin: 0 0 8px; font-size: 16px; }
+  #coldlg fieldset { border: 0; border-top: 1px solid var(--grid); margin: 8px 0 0; padding: 6px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  #coldlg legend { font-weight: 700; padding: 0 4px 0 0; }
+  #coldlg label { display: flex; gap: 6px; align-items: center; }
+  .curvegrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .curvecard h3 { margin: 0 0 2px; font-size: 14px; } .curvecard .wt { font-weight: 400; font-size: 12px; }
+  .curvecard .unit { font-size: 12px; color: var(--ink); margin-bottom: 4px; }
+  .curvelegend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; margin: 6px 0 4px; align-items: center; }
+  @media (max-width: 1100px) { .curvegrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .helpbtn { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #555; background: #fff; color: #111; font: 700 12px/18px system-ui, sans-serif; padding: 0; cursor: pointer; vertical-align: middle; margin-left: 6px; }
   .helpbtn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
   #helpdlg { max-width: 520px; border: 1px solid #bbb; border-radius: 8px; padding: 16px 20px; color: #111; font-size: 13.5px; line-height: 1.5; }
@@ -147,7 +165,7 @@
     .filters { gap: 6px 8px; }
     .filters select, .filters input { font-size: 16px; max-width: 100%; }
     .filters input { flex: 1 1 140px; min-width: 0; }
-    .gv, .pcards, .probs, .grid, .maps, .gamegrid { grid-template-columns: 1fr !important; }
+    .gv, .pcards, .probs, .grid, .maps, .gamegrid, .curvegrid { grid-template-columns: 1fr !important; }
     .pcard .kpis { grid-template-columns: repeat(2, 1fr); }
     .movestrip { padding: 8px 10px; }
     .movestrip .mhead { flex-direction: column; gap: 2px; }
@@ -181,14 +199,19 @@
   <button data-tab="overview" class="on">Overview</button>
   <button data-tab="ranks">Ranks</button>
   <button data-tab="games">Games</button>
-  <button data-tab="method">How the data is made</button>
+  <button data-tab="curves">Rank curves</button>
+  <button data-tab="method">Data</button>
 </nav>
 <main id="main"></main>
+<dialog id="coldlg"><form method="dialog"><h3>Columns</h3><div class="colbody"></div>
+  <div style="display:flex;justify-content:space-between;margin-top:10px"><button type="button" id="colreset">Defaults</button>
+  <span><button value="cancel">Cancel</button> <button value="ok">Show</button></span></div></form></dialog>
 <dialog id="helpdlg"><form method="dialog"><h3></h3><div class="helpbody"></div><div style="text-align:right"><button>Close</button></div></form></dialog>
 </div>
 <div class="tip" id="tip"></div>
-<script>const DATA_VERSION = "20261127023909";   // push_site.py stamps each publish, so browsers never keep an older copy of the data</script>
-<script src="data/summary.js?v=20261127023909"></script>
+<script>const DATA_VERSION = "20261127142239";   // push_site.py stamps each publish, so browsers never keep an older copy of the data</script>
+<script src="data/summary.js?v=20261127142239"></script>
+<script src="data/rank_graph.js?v=20261127142239"></script>
 <script>
 "use strict";
 // Names fixed by the user (GoRanks/CLAUDE.md): phases and columns, in this order.
@@ -199,7 +222,44 @@ const COLUMNS = [
   ["mean_loss", "Avg Point Loss"], ["critical_top1", "Key Moment Top Move %"],
   ["difficulty_9d", "Game Difficulty (9d) %"], ["hard_positions", "Tough Spots (per game)"],
   ["hard_found_pct", "Key Move Found % (per game)"], ["engine_like_pct", "Engine Likeness %"],
+  // per-game measures, averaged over the rank's / band's games (the user, 2026-11-27; Overall rows only)
+  ["x_move_quality_raw", "Move Quality"],
+  ["x_score_swing", "Score Swing"], ["x_lead_changes", "Lead Changes"], ["x_steadiness", "Steadiness"], ["x_max_loss", "Biggest Loss"],
+  ["x_pl_0", "< 0.5 pts"], ["x_pl_1", "0.5–2 pts"], ["x_pl_2", "2–5 pts"], ["x_pl_3", "5–10 pts"], ["x_pl_4", "10+ pts"],
+  ["x_wl_0", "< 2 %"], ["x_wl_1", "2–5 %"], ["x_wl_2", "5–10 %"], ["x_wl_3", "10–20 %"], ["x_wl_4", "20 %+"],
+  // the second model's rank for the game (the user, 2026-11-27): V4, the neural network; V3 is the Performance Rank
+  ["x_rank_v4", "V4nn"],
 ];
+// Column chooser (the user, 2026-11-27): the tables show the original columns by default; the new measures appear when
+// ticked in the "Columns" pop-up. The choice is remembered in this browser.
+// the user's defaults (2026-11-27): Games Analyzed, Best Move %, Accuracy, Match %, Avg Point Loss, Game Difficulty
+const DEFAULT_COLS = ["games", "top1", "accuracy", "match_pct", "mean_loss", "difficulty_9d"];
+const COL_GROUPS = [["Main measures", ["games", "moves", "top1", "accuracy", "match_pct", "mean_loss", "critical_top1", "difficulty_9d",
+  "hard_positions", "hard_found_pct", "engine_like_pct"]], ["Move quality and volatility", ["x_move_quality_raw", "x_score_swing", "x_lead_changes", "x_steadiness", "x_max_loss"]],
+  ["Point-loss classes", ["x_pl_0", "x_pl_1", "x_pl_2", "x_pl_3", "x_pl_4"]], ["Win-rate loss classes", ["x_wl_0", "x_wl_1", "x_wl_2", "x_wl_3", "x_wl_4"]],
+  ["Rank models", ["x_rank_v4"]]];
+let shownCols = (() => { try { const v = JSON.parse(localStorage.getItem("gr_cols")); return Array.isArray(v) && v.length ? v : DEFAULT_COLS; } catch (e) { return DEFAULT_COLS; } })();
+const visibleCols = () => COLUMNS.filter(([k]) => shownCols.includes(k));
+const columnsButton = () => `<button class="colbtn" id="colbtn">Columns…</button>`;
+function openColumns(redraw) {
+  const name = Object.fromEntries(COLUMNS);
+  const dlg = document.getElementById("coldlg");
+  dlg.querySelector(".colbody").innerHTML = COL_GROUPS.map(([title, keys]) => `<fieldset><legend>${title}</legend>` +
+    keys.map(k => `<label><input type="checkbox" value="${k}" ${shownCols.includes(k) ? "checked" : ""}> ${esc(name[k])}</label>`).join("") + `</fieldset>`).join("");
+  dlg.querySelector("#colreset").onclick = () => dlg.querySelectorAll("input").forEach(i => i.checked = DEFAULT_COLS.includes(i.value));
+  dlg.onclose = () => {
+    if (dlg.returnValue !== "ok") return;
+    shownCols = [...dlg.querySelectorAll("input:checked")].map(i => i.value);
+    if (!shownCols.length) shownCols = DEFAULT_COLS;
+    try { localStorage.setItem("gr_cols", JSON.stringify(shownCols)); } catch (e) {}
+    redraw();
+  };
+  dlg.returnValue = "";
+  dlg.showModal();
+}
+// the per-game measures that band and rank rows average from their games (Overall rows)
+const GAME_AVG = ["x_move_quality_raw", "x_score_swing", "x_lead_changes", "x_steadiness", "x_max_loss",
+  "x_pl_0", "x_pl_1", "x_pl_2", "x_pl_3", "x_pl_4", "x_wl_0", "x_wl_1", "x_wl_2", "x_wl_3", "x_wl_4", "x_rank_v4"];
 const POS_COLUMNS = [["same_area_pct", "Same Area %"], ["direction_err_per100", "Direction Errors %"],
   ["local_err_per100", "Local Errors %"], ["resolved_pct", "Resolved-Area Play %"], ["low_value_pct", "Lower-Value Area %"],
   ["forced_error_pct", "Forced Error %"], ["forcing_induced_pct", "Forcing Success %"],
@@ -224,7 +284,7 @@ const data = window.GR_SUMMARY || { rows: [] };
 // Eras (data separation): band and rank rows come per era plus "all"; game rows carry their game's era.
 const ERAS = [["pre", "Pre-AI (≤2015)"], ["early", "Early AI (2016–18)"], ["cur", "Current AI (2019+)"]];
 const ERA_NAME = Object.fromEntries(ERAS);
-const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["pro", "Pro"], ["ext", "Tournament"]];
+const SERVERS = [["kgs", "KGS"], ["ogs", "OGS"], ["fox", "Fox"], ["pro", "Pro"], ["ext", "Tournament"]];
 const SERVER_NAME = Object.fromEntries(SERVERS);
 const COLORS = [["B", "Black"], ["W", "White"]];   // a rank's Black and White players are measured apart
 const COLOR_NAME = Object.fromEntries(COLORS);
@@ -235,12 +295,24 @@ function applyEra() {
     ? (!pick.era || r.era === pick.era) && (!pick.server || r.server === pick.server) && (!pick.color || r.color === pick.color)
     : (r.era || "all") === (pick.era || "all") && (r.server || "all") === (pick.server || "all") &&
       (r.color || "all") === (pick.color || "all"));
+  // band / rank Overall rows: the mean of each per-game measure over their games in the same selection (the games
+  // that count in the totals: fully analysed, within the rank gap, not tournament games)
+  const sums = {};
+  // band / rank rows carry each per-game measure's mean for their phase and selection, computed by the export
 }
 applyEra();
 const eraTitle = () => (pick.server ? " · " + SERVER_NAME[pick.server] : "") + (pick.era ? " · " + ERA_NAME[pick.era] : "") +
   (pick.color ? " · as " + COLOR_NAME[pick.color] : "");
-document.getElementById("stamp").textContent = `Generated ${data.generated || "?"} · ${new Set(rows.filter(r => r.level === "game").map(r => r.id)).size} games · ` +
-  `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0 && !r.wide_gap && !r.external).map(r => r.id)).size} games in the totals`;
+// The games' rows arrive in parts after the page is up (GR_SUMMARY_ADD, at the end of this script): the stamp says
+// how far that is.
+let partsLoaded = 0;
+function updateStamp() {
+  const parts = data.game_parts || 0;
+  document.getElementById("stamp").textContent = `Generated ${data.generated || "?"} · ${new Set(rows.filter(r => r.level === "game").map(r => r.id)).size} games · ` +
+    `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0 && !r.wide_gap && !r.external).map(r => r.id)).size} games in the totals` +
+    (partsLoaded < parts ? ` · loading ${partsLoaded + 1}/${parts}` : "");
+}
+updateStamp();
 const main = document.getElementById("main");
 const tip = document.getElementById("tip");
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -256,6 +328,10 @@ function fmt(col, v) {
   if (col === "accuracy") return (+v).toFixed(1);
   if (POS_COLUMNS.some(c => c[0] === col)) return `${(+v).toFixed(1)} %`;
   if (col === "mean_loss") return (+v).toFixed(2);
+  if (col === "x_move_quality_raw") return levelText(+v);
+  if (col === "x_rank_v4") return rankText(+v);
+  if (/^x_(pl|wl)_/.test(col)) return (+v).toFixed(1);   // moves per game in that class
+  if (col.startsWith("x_")) return (+v).toFixed(col === "x_lead_changes" ? 1 : 2);
   return String(v);
 }
 
@@ -342,132 +418,79 @@ function phaseCharts(level, key, order) {
 }
 
 
-// ---- "How the data is made": the full legend key (shown under every table) ------------------------------------
+// ---- the Data tab ------------------------------------
 const HOWTO_ROWS = (title, rows) => `<h3>${title}</h3><table>` +
   rows.map(([k, v]) => `<tr><td class="k">${k}</td><td>${v}</td></tr>`).join("") + `</table>`;
-// "How the data is made": its own top tab (2026-11-27), written as a methodology — definitions first, then the
-// models, then the limits. Kept in step with the code (gorank/*.py) and with reports/Rank benchmark log.md.
+// The Data tab: sources, inclusion, measures, the two rank models, limits. Short (the user, 2026-11-27).
 const MTABLE = rows => `<table class="mdef">` + rows.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join("") + `</table>`;
 const HOWTO = `<article class="method">
-<h2>How the data is made</h2>
-<p class="lead">This page defines every figure shown on this site: where the games come from, which games are included,
-how each move is analysed, how each measure is computed, and how the Performance Rank and the game timeline are
-estimated. It closes with the known limitations.</p>
+<h2>Data</h2>
 
-<h3>1. Sources</h3>
+<h3>Sources</h3>
 ${MTABLE([
-  ["KGS", "The u-go.net archive of the KGS Go Server: games with at least one player of 4 dan or stronger, up to April 2019. Ranks are those recorded in the game record."],
-  ["OGS", "The data dump of the Online Go Server (za3k.com/ogs, published with OGS's permission). Ranks are taken from OGS's game data."],
-  ["Tournament games", "Games from outside these sources, shared by a player: Albert Yen's games at the 2025 Korea Prime Minister Cup (KPMC). They are analysed exactly like the other games and graded by the model on the KGS rank scale, but are not counted in any total and the model is not trained on them. Their declared ranks are the tournament's."],
+  ["Fox", "Fox Weiqi games (featurecat go-dataset), 15k–9d, plus Fox games of professionals and AI accounts. The base scale: every rank on this site is a Fox rank."],
+  ["KGS", "u-go.net KGS archive to April 2019, games with a player of 4d or stronger. Ranks shown as their Fox equivalent (~ Fox N)."],
+  ["OGS", "OGS data dump (za3k.com/ogs, with OGS's permission). Ranks shown as their Fox equivalent."],
+  ["Tournament", "Games shared by a player (KPMC 2025). Graded, not counted in totals, not trained on."],
 ])}
 
-<h3>2. Inclusion criteria</h3>
-<p>A game is included only if all of the following hold:</p>
-<ol>
-  <li>It is played on a 19×19 board and has at least 50 moves.</li>
-  <li>Both players have a settled rank between 15 kyu and 9 dan.</li>
-  <li>The players' declared ranks are at most two ranks apart. Games with a wider gap are shown in the game list with
-    their Performance Rank, marked "Rank gap over 2", but are not counted in any total and the rank model is not
-    trained on them: a declared rank across such a gap is not a reliable label.</li>
-  <li>Neither player is a program. Programs are identified by name (GoRanks' own list and the lists KataGo uses for its training data), by playing volume (300 or more games at 12 or more per day) and, on OGS, by the account type.</li>
-  <li>Neither the game nor either account has been flagged by the maintainer for suspected use of AI assistance.</li>
-  <li>Every move has a complete analysis (Section 3). Only such games appear anywhere on this site.</li>
-
-</ol>
-<p>No-komi games (Black plays first and White receives no komi, recorded as handicap 1) are included in the tables and
-totals and labelled "No komi", but receive no Performance Rank: the rank model is trained on even games only.</p>
-
-<h3>3. Analysis of each position</h3>
-${MTABLE([
-  ["KataGo", "Network b18c384nbt, a 1,000-visit search of the position before every move. It yields the engine's preferred move, the visits, win rate and score lead of each candidate, and the ownership of every point."],
-  ["KataGo-Human", "KataGo's human-trained network (b18c384nbt-humanv0), queried with 17 rank profiles (20k … 1k, 1d … 9d), policy only. For each profile it gives the probability that a player of that rank chooses each move in the position."],
-  ["Reliable loss", "A move's loss counts as measured when KataGo's search gave it at least 4 visits."],
-  ["Point Loss", "The score lead before the move minus the score lead after it, from the mover's side, in points. A negative value means the move did better than the search expected; it counts as zero in averages. A single move counts at most 30 points."],
-  ["Position Difficulty (9d)", "The probability that a 9-dan player loses 2 or more points in the position: the 9d profile's probability of each move, weighted by whether that move loses 2 or more points. It is reported only when moves carrying at least 80 % of the 9d profile's probability have a measured loss."],
-  ["Decided position", "A position in which one side leads by more than 30 points. It is excluded from Engine Likeness only."],
-])}
-
-<h3>4. Measures</h3>
-<p>Each measure is computed over the player's own moves in the phase shown: Overall, Opening (moves 1–60), Middle game
-(61–150) or Endgame (151 onward).</p>
-${MTABLE([
-  ["Games Analyzed", "The number of games, each counted once. A game counts in a rank or band row when either of its players belongs to it."],
-  ["Moves Analyzed", "The number of the player's own moves in the phase."],
-  ["Best Move %", "The share of the player's moves that were KataGo's first choice."],
-  ["Accuracy", "As defined by Hawk Eye (LizzieYzy), used in Gifu: 100 for KataGo's first choice; otherwise the played move's visits as a percentage of the first choice's visits; 0 if KataGo did not list the move. Averaged over the player's moves."],
-  ["Match %", "The share of the player's moves to which KataGo gave at least 20 % of its first choice's visits. Any point on the board qualifies."],
-  ["Avg Point Loss", "The mean Point Loss per move."],
-  ["Key Moment Top Move %", "A Key Moment is a position in which players of the player's declared rank lose 2 or more points on average (the profile of that rank, its move probabilities weighted by the losses of those moves). The share of Key Moments in which the player chose KataGo's first choice."],
-  ["Game Difficulty (9d) %", "The mean Position Difficulty (9d) over the positions that have one. An error rate of a 9-dan player in these positions, not a score of the player."],
-  ["Tough Spots (per game)", "A Tough Spot is a position with Position Difficulty (9d) of 50 % or more. The mean number of Tough Spots per player per game; a single game shows its own count."],
-  ["Key Move Found % (per game)", "For each game, the share of its Tough Spots in which the player lost less than 2 points; the mean of these shares over games with at least one Tough Spot. A single game shows its own share."],
-  ["Engine Likeness %", "From move 41 onward, in positions not yet decided, a two-state model (human or assisted) compares the probability of each move under an engine and under a human of the player's rank, weighted by the importance of the position. A move is engine-like when the probability of assistance exceeds 50 %. The share of such moves. <b>Not yet calibrated:</b> an indication for review, not a finding."],
-  ["AI-like span (moves)", "For a single game, the longest run of consecutive engine-like moves."],
-  ["Same Area %", "The board is divided at the fourth line into four corners, four sides and the centre. The share of moves in the same area as KataGo's first choice; in symmetric opening positions, a move equivalent to the first choice under rotation or reflection counts as the same."],
-  ["Direction / Local Errors %", "Moves losing 2 or more points in a different area from KataGo's first choice (direction of play), or in the same area (the right place, the wrong move)."],
-  ["Resolved-Area Play %", "Moves into an area KataGo's ownership shows as settled (85 % certainty or more nearby) while its first choice was in an open area."],
-  ["Lower-Value Area %", "Moves in a different area from KataGo's first choice that lost at least 1 point."],
-  ["Same Shape % / Empty Triangle %", "Each move is given a named shape from the surrounding stones (for example hane, kosumi, one-point jump, knight's move, cut, tiger's mouth). Same Shape % is the share of moves whose shape matches that of KataGo's first choice. An empty triangle is the move and two of the player's stones on three corners of a 2×2 square whose fourth corner is empty."],
-  ["Forced Error % / Forcing Success %", "A forcing move is one whose best reply is local while playing elsewhere loses 3 or more points. Forced Error % is the share of forcing moves the player answered locally but still lost 2 or more points on; Forcing Success % is the share of the player's own forcing moves after which the opponent lost 2 or more points."],
-])}
-
-<h3>5. Performance Rank</h3>
-<p>The Performance Rank estimates the level at which a player played in one game. It is not the player's rank.</p>
-<ol>
-  <li><b>Engine rank.</b> For every position the player faced (except decided ones), each of the 17 KataGo-Human
-    rank profiles has a probability of producing a move that loses less than 0.5, 0.5–2, 2–5 or 5+ points there
-    (a move KataGo did not search counts as losing at least 2 points). The engine rank is the rank under which the
-    player's actual losses are most likely, over the whole game. It is difficulty-adjusted: small losses in easy
-    positions say little, finding a good move in a hard position says a lot.</li>
-  <li><b>Human-style rank.</b> How likely each of the 17 profiles is to have chosen the player's actual moves.</li>
-  <li><b>Model.</b> A ridge regression from the two ranks (with an offset per server and era) to the declared rank,
-    with both weights held at zero or above, so better play by either measure can never lower a grade. It is trained
-    on the even games whose players are at most two ranks apart, then fitted once on all of them and saved. Those
-    training games are themselves graded by cross-validation (by a model that has seen none of that player's games);
-    every other game (a wider rank gap, a tournament game) is graded by the saved model.</li>
-  <li><b>Calibration.</b> Regression pulls estimates toward the average rank. The estimate is moved halfway toward a per-server correction that, rank by rank, maps the average estimate back to the declared rank; KGS and OGS are corrected separately because their ranks are different scales (a rank with fewer than 30 players on a server uses the pooled correction).</li>
-  <li><b>Uncertainty (±).</b> The precision with which one game measures the level played: about 1.2 ranks for a whole game (from grading each game's odd and even moves separately), smaller for long games, and widened when the human-style evidence and the engine measures disagree (median ± 1.4). A disagreement of 2 ranks or more between the engine rank and the human-style rank is stated beside the grade; an engine rank far above the human-style rank is what very strong, unusual or AI-assisted play looks like.</li>
-  <li><b>Scope.</b> The declared rank of the player is not an input. A player may play above or below their declared rank in any one game.</li>
-</ol>
-
-<h3>6. Game timeline</h3>
-${MTABLE([
-  ["Best move", "A mark on every move of the player that was KataGo's first choice; the share is shown on the right."],
-  ["Good move", "A mark on every move with at least 20 % of KataGo's best move's visits (the Match % rule); the share is shown on the right."],
-  ["Highlights", "Green bars on the good-move lane: runs of high-quality moves. Each informative move's quality is the policy network its choice is closest to — the smallest gap between that network's own first choice and the move played, in the network's own probabilities — among the 17 KataGo-Human rank profiles (15k … 9d) and KataGo itself (shown as AI, 12). Moves every network would play carry no quality. A highlight has at least 6 informative moves, at least 80 % of them closest to 9d or KataGo, never two others in a row, and ends at any move closest to a profile below 5d (a real mistake); it is labelled with the average quality of all its moves; only runs that touch are joined. Point loss is not used. Runs in the opening tend to read high: memorised openings match KataGo at any strength."],
-  ["Key moments", "Every Tough Spot: a filled circle where the player lost less than 2 points, a cross where they did not."],
-  ["Engine-like", "The AI-like spans (Section 4)."],
-])}
-
-<h3>7. The game page</h3>
-${MTABLE([
-  ["Board", "Move N shows the position after N moves (move 0 is the empty board) and the choice for the next move: KataGo's Best Move as a blue disc, the other good moves (at least 20 % of the best move's visits, the Match % rule) as green discs, and the move actually played as a small dot. A small dot also marks the last stone played. The move strip above the board describes that next move."],
-  ["Ownership", "Shades each point by KataGo's ownership estimate (darker = Black's, lighter = White's, stronger = more certain)."],
-  ["Area Chart", "Per player, every move on the board: in full colour when KataGo gave it at least 10 % of its preferred move's visits, otherwise greyed by its loss. Dashed lines mark the fourth-line areas. The table lists, per area, how often the player played there, how often KataGo preferred it, and how often the player followed KataGo there."],
-  ["Phases", "Black and White compared measure by measure, for the whole game or one phase."],
-])}
-
-<h3>8. Reading the tables</h3>
-${MTABLE([
-  ["Rank", "The player's rank on that server at the time of the game. Use the Server filter to compare like with like: KGS and OGS ranks differ, and the KGS games here are mostly between dan players (every KGS game has a player of 4 dan or stronger)."],
-  ["Era", "Pre-AI (to 2015), Early AI (2016–2018), Current AI (2019 onward), by the date of the game."],
-  ["Colour", "Rows for Black players only, White players only, or both."],
-  ["Grey rows", "Fewer than 50 moves of data: shown, but too few to interpret."],
-  ["Sorting", "In the game list and the move lists, a click on a column heading sorts by that column; a second click reverses the order."],
-])}
-
-<h3>9. Limitations</h3>
+<h3>Included games</h3>
 <ul>
-  <li>One game is a small sample: a single game estimates the level played to about ±1.2 ranks.</li>
-  <li>The scale ends at 9 dan: the strongest KataGo-Human profile and the strongest declared ranks in the data are 9d.
-    Play at professional level is graded as top amateur, and differences between such players are compressed.</li>
-  <li>The model's error against declared ranks is 1.96 ranks on average (cross-validated, even games within the rank gap); part of that is the game-to-game variation of the players themselves.</li>
-  <li>Declared ranks are themselves approximate, and KGS and OGS ranks are not on the same scale.</li>
-  <li>The KataGo-Human profiles describe the human play the network was trained on; older games may compare differently.</li>
-  <li>Opening stretches tend to read high: memorised openings and standard sequences match KataGo at any strength.</li>
-  <li>Engine Likeness is not calibrated against confirmed cases and is not evidence of AI use on its own.</li>
+  <li>19×19, 50 moves or more, fully analysed.</li>
+  <li>Both players 15k–9d, or Fox Pro / Top pro / AI.</li>
+  <li>Players at most 2 ranks apart. Wider gaps are graded and listed ("Rank gap over 2") but not counted or trained on.</li>
+  <li>No bots, no accounts flagged for AI use.</li>
+</ul>
+
+<h3>Analysis</h3>
+${MTABLE([
+  ["KataGo", "A search of every position: best move, candidates' visits, score and ownership."],
+  ["KataGo-Human", "KataGo's human network at 17 rank profiles (20k–9d): how likely a player of each rank is to play each move."],
+  ["Point Loss", "Score lead before the move minus after it, for the mover. Negative counts as 0; at most 30 per move."],
+])}
+
+<h3>Measures</h3>
+<p>Per phase: Overall, Opening (moves 1–60), Middle (61–150), Endgame (151+).</p>
+${MTABLE([
+  ["Best Move %", "Moves that were KataGo's first choice."],
+  ["Accuracy", "Hawk Eye: the move's visits as a % of the best move's (100 for the best, 0 if unlisted), averaged."],
+  ["Match %", "Moves with at least 20 % of the best move's visits."],
+  ["Avg Point Loss", "Mean Point Loss per move."],
+  ["Key Moment Top Move %", "Best Move % in positions where players of the same rank lose 0.5+ points on average."],
+  ["Game Difficulty (9d) %", "How often a 9d would lose 0.7+ points in the player's positions."],
+  ["Tough Spots", "Positions where a 9d loses 0.7+ points at least half the time, per game."],
+  ["Key Move Found %", "Tough Spots where the player lost less than 0.7 points."],
+  ["Engine Likeness %", "Moves (41 on, game not decided) more likely from an engine than from a human of that rank. Not calibrated: a hint, not proof."],
+  ["Move Quality", "Which rank profile, or KataGo, the player's moves are closest to."],
+  ["Positional play", "Same Area %, direction and local errors, resolved and lower-value areas, shapes, forcing moves."],
+])}
+
+<h3>Rank models</h3>
+<p>Both rate the level played in one game, not the player's rank. Neither uses the declared rank.</p>
+${MTABLE([
+  ["V3 · rank curves", "For each measure, where every Fox rank's games sit. A game is read off each curve and the readings combined, weighted by how well each measure separates ranks. A better value never reads lower. Per phase, the same on that phase's curves. ± is how much the measures disagree."],
+  ["V4nn · neural network", "A network trained on Fox games that reads all the measures of the whole game and of each phase together, so it can use combinations the curves miss. Whole game only."],
+  ["Scale", "15k–9d as Fox, 10–11 professional levels, AI at engine-level play."],
+  ["Error, one game", "Tested on games each model did not train on. Mean error: V3 3.6 ranks, V4nn 2.3. Within 1 rank: V3 23 %, V4nn 34 %. Both are much closer for dan and pro players than for kyu players."],
+])}
+
+<h3>Game page</h3>
+${MTABLE([
+  ["Performance", "V3 rank and main measures per phase, Black and White."],
+  ["Timeline", "Best and good moves, highlights (runs of high-quality moves), key moments, engine-like spans."],
+  ["Board", "Blue: KataGo's best. Green: other good moves. Dot: the move played."],
+  ["Area Chart", "Where each player played compared with KataGo, by corner, side and centre."],
+])}
+
+<h3>Limits</h3>
+<ul>
+  <li>One game is a small sample.</li>
+  <li>Declared ranks are approximate; KGS and OGS are mapped to Fox by where their games land.</li>
+  <li>Openings read high: memorised sequences match KataGo at any strength.</li>
+  <li>Engine Likeness is not evidence of AI use on its own.</li>
 </ul>
 </article>`;
+
 
 // ---- views -----------------------------------------------------------------------------------------
 
@@ -482,7 +505,7 @@ function eraOptions() {   // Server and Era: a KGS rank and an OGS rank are diff
 }
 function bandSelect(order, onchange) {
   return `<div class="filters">Rank band <select id="bandpick"><option value="">All</option>` +
-    order.map(b => `<option ${b === pick.band ? "selected" : ""}>${b}</option>`).join("") + `</select> ${eraOptions()}</div>`;
+    order.map(b => `<option ${b === pick.band ? "selected" : ""}>${b}</option>`).join("") + `</select> ${eraOptions()} ${columnsButton()}</div>`;
 }
 function hookEra(redraw) {
   const el = document.getElementById("erapick");
@@ -495,13 +518,15 @@ function hookEra(redraw) {
 function hookBand(redraw) {
   const el = document.getElementById("bandpick");
   if (el) el.onchange = e => { pick.band = e.target.value; redraw(); };
+  const cb = document.getElementById("colbtn");
+  if (cb) cb.onclick = () => openColumns(redraw);
   hookEra(redraw);
 }
 
 function overview() {
   const order = BANDS.filter(b => rows.some(r => r.level === "band" && r.band === b));
   const shown = pick.band ? [pick.band] : order;
-  main.innerHTML = `<h2>Rank bands${eraTitle()}</h2>` + bandSelect(order) + groupedTable(levelGroups("band", "band", shown), "Rank Band", COLUMNS) +
+  main.innerHTML = `<h2>Rank bands${eraTitle()}</h2>` + bandSelect(order) + groupedTable(levelGroups("band", "band", shown), "Rank Band", visibleCols()) +
     `<h2>Positional play${eraTitle()}</h2>` + groupedTable(levelGroups("band", "band", shown), "Rank Band", POS_COLUMNS) +
     `<h2>By rank band</h2>` +
     phaseCharts("band", "band", order);
@@ -513,7 +538,7 @@ function ranks() {
   const all = [...new Set(rows.filter(r => r.level === "rank").map(r => r.rank))].sort((a, b) => rankValue(a) - rankValue(b));
   const order = pick.band ? all.filter(rk => rows.some(r => r.level === "rank" && r.rank === rk && r.band === pick.band)) : all;
   main.innerHTML = `<h2>Ranks${pick.band ? " in " + pick.band : ""}${eraTitle()}</h2>` + bandSelect(bandsHere) +
-    groupedTable(levelGroups("rank", "rank", order), "Rank", COLUMNS) +
+    groupedTable(levelGroups("rank", "rank", order), "Rank", visibleCols()) +
     `<h2>By individual rank${pick.band ? " in " + pick.band : ""}</h2>` + phaseCharts("rank", "rank", order);
   hookBand(ranks);
 }
@@ -522,6 +547,10 @@ const GAME_COLS = COLUMNS.slice(1).concat([["ai_like_span", "AI-like span (moves
 const COLOR_NAMES = { B: "Black", W: "White" };
 const SIDE = { B: "#1f1f1e", W: "#9a9a96" };   // series colour per player in the game graphs
 let gameFilter = { band: "", rank: "", q: "", handicap: "" };
+// The games list shows GAME_PAGE games at a time (thousands of rows at once made the page lag); a click on a column
+// header sorts the whole list, not only the rows on screen.
+const GAME_PAGE = 300;
+let gameShown = GAME_PAGE, gameSort = null;   // gameSort: { col, desc }
 
 function gameIndex() {   // id -> {file, players: {B: {phase: row}, W: {...}}}
   const out = {};
@@ -541,7 +570,8 @@ const handicapLabel = r => r && r.handicap >= 2 ? `Handicap ${r.handicap}` : noK
 const lossText = v => v === null || v === undefined ? "–" : v < 0 ? `${(+v).toFixed(2)} (gain)` : (+v).toFixed(2);
 const playerInfo = (g, c) => {
   const r = (g.players[c] || {}).overall;
-  if (r) return `${r.player || COLOR_NAMES[c]} (${r.rank})`;
+  // KGS / OGS: the server's own rank and its Fox equivalent (the tables group players by the Fox rank)
+  if (r) return `${r.player || COLOR_NAMES[c]} (${r.rank_orig ? `~ Fox ${r.rank}` : r.rank})`;   // a KGS / OGS player: the Fox equivalent only (the user, 2026-11-27)
   const o = (g.players[c === "B" ? "W" : "B"] || {}).overall;   // a player without a usable rank: name from the game
   return o && o.opponent ? `${o.opponent} (unranked)` : "–";
 };
@@ -566,29 +596,68 @@ function games() {
     Handicap <select id="fh"><option value="">all</option><option value="even" ${gameFilter.handicap === "even" ? "selected" : ""}>Even</option><option value="nokomi" ${gameFilter.handicap === "nokomi" ? "selected" : ""}>No komi</option><option value="hc" ${gameFilter.handicap === "hc" ? "selected" : ""}>Handicap</option></select>
     Search <input id="fq" placeholder="game or player" value="${esc(gameFilter.q)}"> <span class="muted">${list.length} games — click one to open it</span></div>`;
   const side = (g, c, k) => { const r = (g.players[c] || {}).overall; return r ? fmt(k, r[k]) : "–"; };
-  h += `<div class="scroll"><table class="sortable"><tr><th class="l">Game</th><th class="l">Date</th><th class="l">Black</th><th class="l">White</th><th class="l">Handicap</th>` +
-       `<th>Performance Rank<br>Black</th><th>Performance Rank<br>White</th><th>Best Move %<br>B · W</th><th>Avg Point Loss<br>B · W</th><th>Game Difficulty (9d) %<br>B · W</th><th>Engine Likeness %<br>B · W</th><th class="l">Note</th></tr>`;
-  list.forEach((g, i) => {
-    const partial = ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? "Partial (not in totals)"
-      : any(g).external ? "Tournament game, outside the data (graded only)"
-      : any(g).wide_gap ? "Rank gap over 2 (not in totals)" : "";
+  const num = (g, c, k) => { const r = (g.players[c] || {}).overall; return r && r[k] != null && r[k] !== "" ? +r[k] : null; };
+  const SORT_KEYS = [g => g.file, g => any(g).date || "", g => playerInfo(g, "B"), g => playerInfo(g, "W"), g => handicapLabel(any(g)),
+    g => num(g, "B", "performance"), g => num(g, "W", "performance"), g => num(g, "B", "x_rank_v4"), g => num(g, "B", "top1"),
+    g => num(g, "B", "mean_loss"), g => num(g, "B", "difficulty_9d"), g => num(g, "B", "engine_like_pct"), null];
+  if (gameSort && SORT_KEYS[gameSort.col]) {
+    const key = SORT_KEYS[gameSort.col];
+    list.sort((a, b) => {
+      const x = key(a), y = key(b);
+      if (x === null || y === null) return x === null ? (y === null ? 0 : 1) : -1;   // games without a value last
+      const r = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y));
+      return gameSort.desc ? -r : r;
+    });
+  }
+  h = h.replace("games — click one to open it", `games`);
+  h += `<div class="scroll"><table class="sortable" id="gamelist"><tr><th class="l">Game</th><th class="l">Date</th><th class="l">Black</th><th class="l">White</th><th class="l">Handicap</th>` +
+       `<th>V3<br>Black</th><th>V3<br>White</th><th>V4nn<br>B · W</th><th>Best Move %<br>B · W</th><th>Avg Point Loss<br>B · W</th><th>Game Difficulty (9d) %<br>B · W</th><th>Engine Likeness %<br>B · W</th><th class="l">Note</th></tr>`;
+  list.slice(0, gameShown).forEach((g, i) => {
+    const partial = ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? "Partial"
+      : any(g).external ? "Tournament"
+      : any(g).wide_gap ? "Rank gap over 2" : "";
     const pr = c => { const r = (g.players[c] || {}).overall; return r && r.performance != null
       ? `<td data-sort="${r.performance}">${rankText(r.performance)} ± ${(+r.performance_sd).toFixed(1)}</td>` : `<td data-sort="">–</td>`; };
     h += `<tr class="click ${i % 2 === 0 ? "shade" : ""}" data-go="${esc(g.id)}"><td class="l">${esc(g.file)}</td><td class="l">${esc(any(g).date || "")}</td>` +
       `<td class="l">${esc(playerInfo(g, "B"))}</td><td class="l">${esc(playerInfo(g, "W"))}</td><td class="l">${handicapLabel(any(g))}</td>` + pr("B") + pr("W") +
+      `<td>${side(g, "B", "x_rank_v4")} · ${side(g, "W", "x_rank_v4")}</td>` +
       ["top1", "mean_loss", "difficulty_9d", "engine_like_pct"].map(k => `<td>${side(g, "B", k)} · ${side(g, "W", k)}</td>`).join("") +
       `<td class="l muted">${partial}</td></tr>`;
   });
-  main.innerHTML = h + "</table></div>";
-  document.getElementById("fb").onchange = e => { gameFilter.band = e.target.value; games(); };
-  hookEra(games);
-  document.getElementById("fr").onchange = e => { gameFilter.rank = e.target.value; games(); };
-  document.getElementById("fh").onchange = e => { gameFilter.handicap = e.target.value; games(); };
-  document.getElementById("fq").oninput = e => { gameFilter.q = e.target.value; games(); const f = document.getElementById("fq"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); };
+  main.innerHTML = h + "</table></div>" + (list.length > gameShown
+    ? `<p class="muted">${gameShown} / ${list.length} <button class="colbtn" id="moregames">More</button> <button class="colbtn" id="allgames">All</button></p>` : "");
+  const again = () => { gameShown = GAME_PAGE; games(); };   // a new selection starts at the top of the list
+  document.getElementById("fb").onchange = e => { gameFilter.band = e.target.value; again(); };
+  hookEra(again);
+  document.getElementById("fr").onchange = e => { gameFilter.rank = e.target.value; again(); };
+  document.getElementById("fh").onchange = e => { gameFilter.handicap = e.target.value; again(); };
+  document.getElementById("fq").oninput = e => { gameFilter.q = e.target.value; again(); const f = document.getElementById("fq"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); };
+  const more = document.getElementById("moregames"), all = document.getElementById("allgames");
+  if (more) more.onclick = () => { gameShown += GAME_PAGE; games(); };
+  if (all) all.onclick = () => { gameShown = list.length; games(); };
+  const headRow = document.querySelector("#gamelist tr");
+  [...headRow.children].forEach((th, i) => {
+    if (gameSort && gameSort.col === i) th.setAttribute("data-sorted", gameSort.desc ? "▼" : "▲");
+    th.onclick = e => {   // the whole list is sorted and drawn again (the page-wide sorter only knows the rows shown)
+      e.stopPropagation();
+      if (!SORT_KEYS[i]) return;
+      gameSort = { col: i, desc: !(gameSort && gameSort.col === i && gameSort.desc) };
+      games();
+    };
+  });
 }
 
 function loadGame(id, then) {
   if (window.GR_GAMES && window.GR_GAMES[id]) return then(window.GR_GAMES[id]);
+  if (location.protocol.startsWith("http") && window.DecompressionStream) {   // the website: gzipped game files
+    fetch(`data/games/${encodeURIComponent(id)}.js.gz?v=${DATA_VERSION}`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(buf => { const b = new Uint8Array(buf);   // still gzip unless the server already unpacked it
+        return b[0] === 0x1f && b[1] === 0x8b ? new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"))).text() : new TextDecoder().decode(b); })
+      .then(text => { const s = document.createElement("script"); s.textContent = text; document.head.appendChild(s); then((window.GR_GAMES || {})[id] || null); })
+      .catch(() => then(null));
+    return;
+  }
   const s = document.createElement("script");
   s.src = `data/games/${encodeURIComponent(id)}.js?v=${DATA_VERSION}`;
   s.onload = () => then((window.GR_GAMES || {})[id] || null);
@@ -827,17 +896,107 @@ function spansOf(list, color) {
   return out;
 }
 
+// ---- Rank curves (v3, the rank graph; the user's design, 2026-11-27) ----------------------------------------------
+// One chart per KataGo measure: for each declared rank, the median of that rank's games, per server; above 9d the
+// curve runs on (dashed) to KataGo's own value at 12 = AI. The grade measures first (with their weight in the
+// Performance Rank), then the curves shown for reference only. Colours: the site's categorical pair (KGS blue, OGS
+// orange) plus both servers in dark grey, dashed; all text black.
+// one line per phase (the user, 2026-11-27), in the site's phase colours; both servers together
+const CURVE_SERIES = [["overall", "Overall", "#2a78d6", ""], ["opening", "Opening", "#eb6834", ""], ["middle", "Middle", "#1baf7a", ""], ["end", "Endgame", "#eda100", ""]];
+const CURVE_FMT = {
+  accuracy: v => v.toFixed(0), match_pct: v => v.toFixed(0) + " %", top1: v => Math.round(100 * v) + " %",
+  mean_loss: v => v.toFixed(2), critical_top1: v => Math.round(100 * v) + " %", hard_found_pct: v => v.toFixed(0) + " %",
+  move_quality: v => levelText(v), score_swing: v => v.toFixed(2), lead_changes: v => v.toFixed(1),
+  steadiness: v => v.toFixed(2), max_loss: v => v.toFixed(1),
+};
+const curveFmt = k => CURVE_FMT[k] || (/^(pl|wl)_/.test(k) ? v => v.toFixed(1) : v => v.toFixed(2));
+const CURVE_TIP = {
+  pl_0: "moves per game losing this many points", pl_1: "moves per game losing this many points", pl_2: "moves per game losing this many points",
+  pl_3: "moves per game losing this many points", pl_4: "moves per game losing this many points",
+  wl_0: "moves per game losing this much win rate", wl_1: "moves per game losing this much win rate", wl_2: "moves per game losing this much win rate",
+  wl_3: "moves per game losing this much win rate", wl_4: "moves per game losing this much win rate",
+};
+function curveChart(m, model) {
+  const W = 360, H = 230, L = 52, R = 14, T = 14, B = 36;
+  const ai = model.ai_level, X0 = -14, X1 = ai;
+  const x = r => L + (W - L - R) * (r - X0) / (X1 - X0);
+  const src = ph => ph === "overall" ? (model.curves[m.key] || {}).pooled : ((model.phase_curves || {})[ph] || {})[m.key]?.pooled;
+  const series = CURVE_SERIES.map(([k, name, col, dash]) => ({ k, name, col, dash,
+    pts: (src(k) || []).map(([r, v]) => [r, m.sign * v]) })).filter(sr => sr.pts.length);
+  const anchor = m.sign * m.anchor;
+  const showAI = !/^(pl|wl)_/.test(m.key);   // move counts per game: no meaningful AI value
+  const vals = series.flatMap(sr => sr.pts.map(p => p[1])).concat(showAI ? [anchor] : []);
+  const vlo = Math.min(...vals), vhi = Math.max(...vals);   // the real range: tick labels stay within it
+  const pad = (vhi - vlo) * 0.08 || 1, lo = vlo - pad, hi = vhi + pad;
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const f = curveFmt(m.key);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(m.label)} by rank">`;
+  for (let i = 0; i <= 3; i++) {   // light grid, black tick labels
+    const v = vlo + (vhi - vlo) * i / 3;
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#e4e4e1"/>` +
+         `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#111">${esc(f(v))}</text>`;
+  }
+  [[-14, "15k"], [-9, "10k"], [-4, "5k"], [1, "1d"], [5, "5d"], [9, "9d"], [ai, "AI"]].forEach(([r, t]) =>
+    s += `<text x="${x(r)}" y="${H - B + 16}" text-anchor="middle" font-size="11" fill="#111">${t}</text>`);
+  s += `<line x1="${x(9)}" x2="${x(9)}" y1="${T}" y2="${H - B}" stroke="#bbb" stroke-dasharray="2 3"/>`;
+  series.forEach(sr => {
+    const d = sr.pts.map(([r, v], i) => `${i ? "L" : "M"}${x(r).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    s += `<path d="${d}" fill="none" stroke="${sr.col}" stroke-width="2" ${sr.dash ? `stroke-dasharray="${sr.dash}"` : ""}/>`;
+    const [lr, lv] = sr.pts[sr.pts.length - 1];   // on to KataGo's own value (the interpolated stretch)
+    if (showAI) s += `<path d="M${x(lr)},${y(lv)} L${x(ai)},${y(anchor)}" fill="none" stroke="${sr.col}" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8"/>`;
+    sr.pts.forEach(([r, v]) => s += `<circle cx="${x(r)}" cy="${y(v)}" r="3" fill="${sr.col}" stroke="#fff" stroke-width="1"><title>${sr.name} ${rankText(r)}: ${f(v)} (median of that rank's games)</title></circle>`);
+  });
+  if (showAI) s += `<path d="M${x(ai)} ${y(anchor) - 6} L${x(ai) + 6} ${y(anchor)} L${x(ai)} ${y(anchor) + 6} L${x(ai) - 6} ${y(anchor)} Z" fill="#111"><title>KataGo's own play: ${f(anchor)} (level 12, AI)</title></path>`;
+  s += `<text x="${L}" y="${H - 4}" font-size="11" fill="#111">declared rank →</text></svg>`;
+  return s;
+}
+function rankCurves() {
+  const model = window.GR_RANK_GRAPH;
+  if (!model) { main.innerHTML = "<p>No rank curves in this data.</p>"; return; }
+  const card = m => `<div class="card curvecard"><h3>${esc(m.label)}</h3>
+    <div class="unit">${m.sign > 0 ? "higher = stronger" : "lower = stronger"}${CURVE_TIP[m.key] ? " · " + esc(CURVE_TIP[m.key]) : ""}</div>${curveChart(m, model)}</div>`;
+  const legend = `<div class="curvelegend">${CURVE_SERIES.map(([, n, c, d]) => `<span><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="${c}" stroke-width="2.5" ${d ? `stroke-dasharray="${d}"` : ""}/></svg> ${n}</span>`).join("")}
+    <span><svg width="12" height="12"><path d="M6 0 L12 6 L6 12 L0 6 Z" fill="#111"/></svg> KataGo's own play (AI, 12)</span></div>`;
+  // (both servers together)
+  const help = helpButton("Rank curves", `<p>V3: for each Fox rank, the median of its games on one measure. Dotted: on to AI.</p>
+    <p>Colours: whole game, opening, middle, endgame.</p>
+    <p>A game is read off the weighted curves; the reference curves do not count.</p>`);
+  main.innerHTML = `<h2>Rank curves ${help}</h2><p class="sub">V3 · ${esc(model.created)} · ${model.trained_on_games.toLocaleString()} games</p>${legend}
+    <div class="curvegrid">${model.measures.filter(m => m.grade !== false).concat(model.measures.filter(m => m.grade === false)).map(card).join("")}</div>`;
+}
+
 // ---- one game ---------------------------------------------------------------------------------------
 let cur = { id: null, game: null, move: 0 };
 
 const GAME_TABS = [["timeline", "Timeline"], ["phases", "Phases"], ["problems", "Problem moves"], ["charts", "Charts"],
   ["where", "Area Chart"], ["moves", "All moves"]];
-function playerCard(g, c, r) {
+// The performance table, after Zhangqi's report (the user, 2026-11-27: "make the performance a table similar to
+// ZhangQi"): the level played and the main measures for the whole game and for each phase, Black and White side by
+// side. A phase's rank reads that phase's measures off the phase's own rank curves (V3); V4nn rates the whole game.
+function perfTable(groups, ph) {
+  if (!groups || !groups.length) return "";
+  const has = v => v !== null && v !== undefined && v !== "";
+  const RANGE = { overall: "", opening: "Moves 1–60", middle: "Moves 61–150", end: "Moves 151+" };
+  const cols = [["top1", "Best Move %"], ["match_pct", "Match %"], ["mean_loss", "Avg Point Loss"], ["difficulty_9d", "Game Difficulty (9d) %"]];
+  const rank = r => { const v = r.phase === "overall" ? r.performance : r.x_rank_v3;
+    return !has(v) ? "–" : rankText(+v) + (r.phase === "overall" && has(r.performance_sd) ? ` <span class="pm">± ${(+r.performance_sd).toFixed(1)}</span>` : ""); };
+  const row = (g, i) => { const r = g.rows[ph];
+    return `<tr class="${i % 2 === 0 ? "shade" : ""}"><td class="l"><span class="who"><span class="stone" style="background:${g.color === "W" ? "#fafaf7" : "#1f1f1e"}"></span>${esc(g.label)}</span></td>` +
+      (r ? `<td><b>${rank(r)}</b></td>` + cols.map(([k]) => `<td>${esc(fmt(k, r[k]))}</td>`).join("") : `<td colspan="${cols.length + 1}">–</td>`) + `</tr>`; };
+  return `<div class="card perfcard"><div class="gtabs">` + PHASES.map(p => `<button data-pph="${p}" class="${p === ph ? "on" : ""}">${PHASE_NAMES[p]}</button>`).join("") +
+    `<span class="perfrange">${RANGE[ph]}</span></div><table><tr><th class="l">Player</th><th>Rank (V3)</th>` + cols.map(([, t]) => `<th>${head(t)}</th>`).join("") + `</tr>` +
+    groups.map(row).join("") + `</table></div>`;
+}
+function playerCard(g, c, r, phases) {   // phases: the player's rows per phase, once the game's file is loaded
   const v = (k, f) => r && r[k] !== null && r[k] !== undefined && r[k] !== "" ? f(r[k]) : "–";
+  // the level played in each part of the game (the user, 2026-11-27): the same measures read off each phase's curves
+  const phaseRank = ph => { const p = phases && phases[ph]; return p && p.x_rank_v3 != null && p.x_rank_v3 !== "" ? rankText(+p.x_rank_v3) : "–"; };
+  const byPhase = phases ? `<div class="perflabel">By phase (V3): ` + PHASES.map(ph => `${PHASE_NAMES[ph]} <b>${ph === "overall" && r && r.performance != null ? rankText(r.performance) : phaseRank(ph)}</b>`).join(" · ") + `</div>` : "";
   return `<div class="pcard"><div class="who"><span class="stone" style="background:${c === "B" ? "#1f1f1e" : "#fafaf7"}"></span>${esc(COLOR_NAMES[c])} · ${esc(playerInfo(g, c))}</div>
     <div class="perf">${r && r.performance != null ? `${rankText(r.performance)} <small>± ${r.performance_sd.toFixed(1)}</small>` : "–"}</div>
-    ${r && r.performance == null ? `<div class="pnote">${noKomi(r) ? "Not graded: a no-komi game (the model is trained on even games)" : "Not graded: too few moves for a Performance Rank"}</div>` : ""}
-    <div class="perflabel">Performance Rank (the level played in this game)</div>
+    ${r && r.performance == null ? `<div class="pnote">${noKomi(r) ? "Not graded: no komi" : "Not graded: too few moves"}</div>` : ""}
+    <div class="perflabel">V3</div>
+    <div class="perflabel">V4nn <b>${r && r.x_rank_v4 != null && r.x_rank_v4 !== "" ? rankText(+r.x_rank_v4) : "–"}</b></div>
     <div class="note">${esc(perfNote(r))}</div>
     <div class="kpis">
       <div class="kpi"><div class="v">${v("accuracy", x => (+x).toFixed(1))}</div><div class="l">Accuracy</div></div>
@@ -848,15 +1007,16 @@ function playerCard(g, c, r) {
 }
 function gameView(id) {
   const g = gameIndex()[id];
-  if (!g) { main.innerHTML = `<p>Game not found.</p>`; return; }
+  if (!g) { main.innerHTML = partsLoaded < (data.game_parts || 0) ? `<p>Loading the games…</p>` : `<p>Game not found.</p>`; return; }
   cur = { id, game: null, move: 0, tab: (cur && cur.tab) || "timeline" };
   const any = (g.players.B || g.players.W).overall || {};
   main.innerHTML = `<button class="back" id="back">← All games</button>
     <h2>${esc(g.file)} · ${esc(any.date || "")} · ${handicapLabel(any)}${any.komi !== "" && any.komi !== undefined ? " · komi " + esc(any.komi) : ""}</h2>
-    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? `<p class="muted">Partially analysed: shown here, not counted in the totals.</p>` : ""}
-    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.external) ? `<p class="gapnote">A tournament game from outside the data (shared by the player). It is analysed exactly like the other games and graded by the model, on the KGS rank scale, but it is not counted in any total and the model is not trained on it. The declared ranks are the tournament's.</p>` : ""}
-    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.wide_gap) ? `<p class="gapnote">The players' declared ranks are more than 2 ranks apart. The game is rated (the Performance Rank does not use the declared rank) but is not counted in the totals and the model is not trained on it.</p>` : ""}
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? `<p class="muted">Partial: not in totals.</p>` : ""}
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.external) ? `<p class="gapnote">Tournament game: graded, not in totals.</p>` : ""}
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.wide_gap) ? `<p class="gapnote">Rank gap over 2: graded, not in totals.</p>` : ""}
     <div class="pcards" id="pcards">${["B", "W"].filter(c => g.players[c]).map(c => playerCard(g, c, g.players[c].overall)).join("")}</div>
+    <div id="perftable"></div>
     <div id="movestrip" class="card movestrip"></div>
     <div class="gv">
       <div id="boardbox" class="card gv-board">Loading…</div>
@@ -882,8 +1042,11 @@ function gameView(id) {
     if (data.rows) {   // this game's rows for every phase come with its file (the summary has Overall only)
       const byColor = {};
       data.rows.forEach(r => ((byColor[r.color] = byColor[r.color] || {})[r.phase] = r));
-      cur.groups = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c] }));
-      document.getElementById("pcards").innerHTML = ["B", "W"].filter(c => byColor[c]).map(c => playerCard(g, c, byColor[c].overall)).join("");
+      cur.groups = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c], color: c }));
+      document.getElementById("pcards").innerHTML = ["B", "W"].filter(c => byColor[c]).map(c => playerCard(g, c, byColor[c].overall, byColor[c])).join("");
+      const drawPerf = () => { document.getElementById("perftable").innerHTML = perfTable(cur.groups, cur.perfPhase || "overall"); };
+      document.getElementById("perftable").onclick = e => { const b = e.target.closest("[data-pph]"); if (b) { cur.perfPhase = b.dataset.pph; drawPerf(); } };
+      drawPerf();
     }
     cur.move = Math.min(1, data.board ? data.board.moves.length : 0);   // move 0 on screen: the empty board, Black to play
     drawGame();
@@ -1005,11 +1168,12 @@ function problemMoves(d) {
   return `<p style="margin-top:0">Click a move to see it on the board. ● = a Tough Spot (a 9d would go wrong there half the time or more): a loss there is easier to forgive.</p><div class="probs">${col("B")}${col("W")}</div>`;
 }
 
-// Performance Rank: the level this player played at in this game, from the rank profiles of their colour (7d-B /
-// 7d-W); ± = how precisely the game's moves measure it (split-half: about 1.2 ranks for a whole game).
-function rankText(v) { return v >= 1 ? `${v.toFixed(1)}d` : v <= 0 ? `${(1 - v).toFixed(1)}k` : v >= 0.5 ? "1d" : "1k"; }
+// V3: the level this player played at in this game; ± = how much the measures disagree.
+function rankText(v) {   // 10 and 11 are the pro levels, shown as the number; 12 is AI (the user, 2026-11-27)
+  if (v >= 10) return v >= 12 ? "AI" : v.toFixed(1);
+  return v >= 1 ? `${v.toFixed(1)}d` : v <= 0 ? `${(1 - v).toFixed(1)}k` : v >= 0.5 ? "1d" : "1k"; }
 function perfText(r) {
-  return r && r.performance != null ? ` · Performance Rank ${rankText(r.performance)} ± ${r.performance_sd.toFixed(1)}` : "";
+  return r && r.performance != null ? ` · V3 ${rankText(r.performance)} ± ${r.performance_sd.toFixed(1)}` : "";
 }
 function perfNote(r) {   // performance_split: engine-side minus human-style (profile) estimate; 2+ ranks apart is named
   const s = r && r.performance_split;
@@ -1146,10 +1310,12 @@ function whereCard(d, col) {
 function step(k) { if (!cur.game || !cur.game.board) return; cur.move = Math.max(1, Math.min(cur.game.board.moves.length + 1, cur.move + k)); drawGame(); }
 
 // ---- routing, hover -----------------------------------------------------------------------------
+let shown = { tab: "overview", arg: undefined };
 function show(tab, arg) {
+  shown = { tab, arg };
   if (tab !== "game") cur = { id: null, game: null, move: 0 };
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  ({ overview, ranks, games, method: () => { main.innerHTML = HOWTO; }, game: () => gameView(arg) })[tab]();
+  ({ overview, ranks, games, curves: rankCurves, method: () => { main.innerHTML = HOWTO; }, game: () => gameView(arg) })[tab]();
   location.hash = arg ? `${tab}/${encodeURIComponent(arg)}` : tab;
 }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => show(b.dataset.tab));
@@ -1169,7 +1335,31 @@ document.addEventListener("mousemove", e => {
   else tip.style.display = "none";
 });
 const [t0, a0] = location.hash.slice(1).split("/");
-show(["overview", "ranks", "games", "method", "game"].includes(t0) ? t0 : "overview", a0 ? decodeURIComponent(a0) : undefined);
+show(["overview", "ranks", "games", "curves", "method", "game"].includes(t0) ? t0 : "overview", a0 ? decodeURIComponent(a0) : undefined);
+
+// ---- the games' rows, in parts ------------------------------------------------------------------------
+// summary.js holds the band and rank totals only, so the page is up at once; each game's Overall row comes in
+// data/summary_games_<n>.js (the user, 2026-11-27: "load things in chunks, otherwise it causes lag"). The parts are
+// fetched one after another; the games list and an open game are drawn again as their rows arrive.
+window.GR_SUMMARY_ADD = part => { for (const r of part) data.rows.push(r); };
+(function loadParts() {
+  const parts = data.game_parts || 0;
+  if (partsLoaded >= parts) { updateStamp(); return; }
+  const s = document.createElement("script");
+  s.src = `data/summary_games_${partsLoaded}.js?v=${DATA_VERSION}`;
+  const next = () => {
+    partsLoaded++;
+    applyEra();
+    updateStamp();
+    const typing = document.activeElement && document.activeElement.id === "fq";
+    if (shown.tab === "games" && !typing) games();
+    else if (shown.tab === "game" && !cur.id) show("game", shown.arg);   // the game asked for has just arrived
+    setTimeout(loadParts, 0);   // let the page breathe between parts
+  };
+  s.onload = next;
+  s.onerror = next;
+  document.head.appendChild(s);
+})();
 </script>
 </body>
 </html>
