@@ -49,6 +49,15 @@
   .pcard .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
   .pcard .kpi .v { font-size: 17px; font-weight: 600; }
   .pcard .kpi .l { font-size: 11px; color: var(--ink); }
+  .pnote { font-size: 12px; margin-top: 2px; }
+  .helpbtn { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #555; background: #fff; color: #111; font: 700 12px/18px system-ui, sans-serif; padding: 0; cursor: pointer; vertical-align: middle; margin-left: 6px; }
+  .helpbtn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #helpdlg { max-width: 520px; border: 1px solid #bbb; border-radius: 8px; padding: 16px 20px; color: #111; font-size: 13.5px; line-height: 1.5; }
+  #helpdlg::backdrop { background: rgba(0, 0, 0, 0.25); }
+  #helpdlg h3 { margin: 0 0 10px; font-size: 16px; }
+  #helpdlg button { padding: 5px 14px; }
+  .helpdl dt { font-weight: 700; margin-top: 8px; } .helpdl dd { margin: 2px 0 0 0; }
+  .gapnote { font-size: 13px; padding: 8px 12px; border-left: 3px solid #b5541f; background: #fbf3ec; margin: 0 0 12px; }
   .movestrip { margin-bottom: 12px; padding: 10px 14px; }
   .movestrip .mhead { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; font-size: 13px; margin-bottom: 8px; }
   .movestrip .mcells { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
@@ -140,6 +149,7 @@
   <button data-tab="method">How the data is made</button>
 </nav>
 <main id="main"></main>
+<dialog id="helpdlg"><form method="dialog"><h3></h3><div class="helpbody"></div><div style="text-align:right"><button>Close</button></div></form></dialog>
 </div>
 <div class="tip" id="tip"></div>
 <script src="data/summary.js"></script>
@@ -194,7 +204,7 @@ applyEra();
 const eraTitle = () => (pick.server ? " · " + SERVER_NAME[pick.server] : "") + (pick.era ? " · " + ERA_NAME[pick.era] : "") +
   (pick.color ? " · as " + COLOR_NAME[pick.color] : "");
 document.getElementById("stamp").textContent = `Generated ${data.generated || "?"} · ${new Set(rows.filter(r => r.level === "game").map(r => r.id)).size} games · ` +
-  `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0).map(r => r.id)).size} games in the totals`;
+  `${new Set(rows.filter(r => r.level === "game" && r.complete !== 0 && !r.wide_gap && !r.external).map(r => r.id)).size} games in the totals`;
 const main = document.getElementById("main");
 const tip = document.getElementById("tip");
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -312,25 +322,30 @@ estimated. It closes with the known limitations.</p>
 ${MTABLE([
   ["KGS", "The u-go.net archive of the KGS Go Server: games with at least one player of 4 dan or stronger, up to April 2019. Ranks are those recorded in the game record."],
   ["OGS", "The data dump of the Online Go Server (za3k.com/ogs, published with OGS's permission). Ranks are taken from OGS's game data."],
-  ["Professional", "Games from kifudepot.net. Each professional is placed in a tier by their goratings.org rating at the date of the game: <b>top</b> = among the approximately 50 highest-rated that year, <b>new</b> = within two years of their first rated game, <b>mid</b> = all others."],
+  ["Tournament games", "Games from outside these sources, shared by a player: Albert Yen's games at the 2025 Korea Prime Minister Cup (KPMC). They are analysed exactly like the other games and graded by the model on the KGS rank scale, but are not counted in any total and the model is not trained on them. Their declared ranks are the tournament's."],
 ])}
 
 <h3>2. Inclusion criteria</h3>
 <p>A game is included only if all of the following hold:</p>
 <ol>
   <li>It is played on a 19×19 board and has at least 50 moves.</li>
-  <li>Both players have a settled rank between 15 kyu and 9 dan (professionals only from the professional source).</li>
-  <li>The players' declared ranks are at most two ranks apart.</li>
+  <li>Both players have a settled rank between 15 kyu and 9 dan.</li>
+  <li>The players' declared ranks are at most two ranks apart. Games with a wider gap are shown in the game list with
+    their Performance Rank, marked "Rank gap over 2", but are not counted in any total and the rank model is not
+    trained on them: a declared rank across such a gap is not a reliable label.</li>
   <li>Neither player is a program. Programs are identified by name (GoRanks' own list and the lists KataGo uses for its training data), by playing volume (300 or more games at 12 or more per day) and, on OGS, by the account type.</li>
   <li>Neither the game nor either account has been flagged by the maintainer for suspected use of AI assistance.</li>
   <li>Every move has a complete analysis (Section 3). Only such games appear anywhere on this site.</li>
+
 </ol>
+<p>No-komi games (Black plays first and White receives no komi, recorded as handicap 1) are included in the tables and
+totals and labelled "No komi", but receive no Performance Rank: the rank model is trained on even games only.</p>
 
 <h3>3. Analysis of each position</h3>
 ${MTABLE([
-  ["KataGo", "Network b18c384nbt, an 8-visit search of the position before every move. It yields the engine's preferred move, the visits, win rate and score lead of each candidate, and the ownership of every point."],
-  ["KataGo-Human", "KataGo's human-trained network, queried with 17 rank profiles (20k … 1k, 1d … 9d). For each profile it gives the probability that a player of that rank chooses each move in the position."],
-  ["Candidate searches", "Moves a 9-dan player would plausibly choose receive their own 16-visit search (up to 8 per position), until moves carrying at least 95 % of the 9d profile's probability have a reliable loss (one measured with 4 or more visits)."],
+  ["KataGo", "Network b18c384nbt, a 1,000-visit search of the position before every move. It yields the engine's preferred move, the visits, win rate and score lead of each candidate, and the ownership of every point."],
+  ["KataGo-Human", "KataGo's human-trained network (b18c384nbt-humanv0), queried with 17 rank profiles (20k … 1k, 1d … 9d), policy only. For each profile it gives the probability that a player of that rank chooses each move in the position."],
+  ["Reliable loss", "A move's loss counts as measured when KataGo's search gave it at least 4 visits."],
   ["Point Loss", "The score lead before the move minus the score lead after it, from the mover's side, in points. A negative value means the move did better than the search expected; it counts as zero in averages. A single move counts at most 30 points."],
   ["Position Difficulty (9d)", "The probability that a 9-dan player loses 2 or more points in the position: the 9d profile's probability of each move, weighted by whether that move loses 2 or more points. It is reported only when moves carrying at least 80 % of the 9d profile's probability have a measured loss."],
   ["Decided position", "A position in which one side leads by more than 30 points. It is excluded from Engine Likeness only."],
@@ -363,23 +378,34 @@ ${MTABLE([
 <h3>5. Performance Rank</h3>
 <p>The Performance Rank estimates the level at which a player played in one game. It is not the player's rank.</p>
 <ol>
-  <li><b>Evidence.</b> Two kinds: how closely the moves resemble each of the 17 human rank profiles (human-style play), and engine measures (point loss, blunders, and how often the move was KataGo's first choice).</li>
-  <li><b>Model.</b> A ridge regression from this evidence to the declared rank, trained on all included games. Every estimate is made by a model that has seen none of that player's games (cross-validation by player).</li>
-  <li><b>Calibration.</b> Regression pulls estimates toward the average rank. The estimate is moved halfway toward a per-server correction that, rank by rank, maps the average estimate back to the declared rank; KGS and OGS are corrected separately because their ranks are different scales.</li>
-  <li><b>Uncertainty (±).</b> The precision with which one game measures the level played, about 1.2 ranks for a whole game, widened when the human-style evidence and the engine measures disagree. A disagreement of 2 ranks or more is stated beside the rank; engine measures far stronger than human-style play is what very strong, unusual or AI-assisted play looks like.</li>
+  <li><b>Engine rank.</b> For every position the player faced (except decided ones), each of the 17 KataGo-Human
+    rank profiles has a probability of producing a move that loses less than 0.5, 0.5–2, 2–5 or 5+ points there
+    (a move KataGo did not search counts as losing at least 2 points). The engine rank is the rank under which the
+    player's actual losses are most likely, over the whole game. It is difficulty-adjusted: small losses in easy
+    positions say little, finding a good move in a hard position says a lot.</li>
+  <li><b>Human-style rank.</b> How likely each of the 17 profiles is to have chosen the player's actual moves.</li>
+  <li><b>Model.</b> A ridge regression from the two ranks (with an offset per server and era) to the declared rank,
+    with both weights held at zero or above, so better play by either measure can never lower a grade. It is trained
+    on the even games whose players are at most two ranks apart, then fitted once on all of them and saved. Those
+    training games are themselves graded by cross-validation (by a model that has seen none of that player's games);
+    every other game (a wider rank gap, a tournament game) is graded by the saved model.</li>
+  <li><b>Calibration.</b> Regression pulls estimates toward the average rank. The estimate is moved halfway toward a per-server correction that, rank by rank, maps the average estimate back to the declared rank; KGS and OGS are corrected separately because their ranks are different scales (a rank with fewer than 30 players on a server uses the pooled correction).</li>
+  <li><b>Uncertainty (±).</b> The precision with which one game measures the level played: about 1.2 ranks for a whole game (from grading each game's odd and even moves separately), smaller for long games, and widened when the human-style evidence and the engine measures disagree (median ± 1.4). A disagreement of 2 ranks or more between the engine rank and the human-style rank is stated beside the grade; an engine rank far above the human-style rank is what very strong, unusual or AI-assisted play looks like.</li>
   <li><b>Scope.</b> The declared rank of the player is not an input. A player may play above or below their declared rank in any one game.</li>
 </ol>
 
 <h3>6. Game timeline</h3>
 ${MTABLE([
-  ["Rank", "Each player's game, from move 1, divided into stretches in which the level of play is steady, each labelled with the mean level of its moves. The level of each move is estimated with the Performance Rank model on the 12 moves of the player around it, capped at 11 dan. The divisions minimise the variation within stretches, with a cost per division and at least 8 of the player's moves per stretch. A stretch is not adjusted to the game's Performance Rank. Its ± widens as it gets shorter; a dashed outline marks a short stretch."],
+  ["Best move", "A mark on every move of the player that was KataGo's first choice; the share is shown on the right."],
+  ["Good move", "A mark on every move with at least 20 % of KataGo's best move's visits (the Match % rule); the share is shown on the right."],
+  ["Highlights", "Green bars on the good-move lane: runs of high-quality moves. Each informative move's quality is the policy network its choice is closest to — the smallest gap between that network's own first choice and the move played, in the network's own probabilities — among the 17 KataGo-Human rank profiles (15k … 9d) and KataGo itself (shown as AI, 12). Moves every network would play carry no quality. A highlight has at least 6 informative moves, at least 80 % of them closest to 9d or KataGo, never two others in a row, and ends at any move closest to a profile below 5d (a real mistake); it is labelled with the average quality of all its moves; only runs that touch are joined. Point loss is not used. Runs in the opening tend to read high: memorised openings match KataGo at any strength."],
   ["Key moments", "Every Tough Spot: a filled circle where the player lost less than 2 points, a cross where they did not."],
   ["Engine-like", "The AI-like spans (Section 4)."],
 ])}
 
 <h3>7. The game page</h3>
 ${MTABLE([
-  ["Board", "The position after the selected move. The move just played carries a ring; a blue circle marks KataGo's preferred move for it, and a blue ring around the played stone means the player chose it. A small dot marks the next move."],
+  ["Board", "Move N shows the position after N moves (move 0 is the empty board) and the choice for the next move: KataGo's Best Move as a blue disc, the other good moves (at least 20 % of the best move's visits, the Match % rule) as green discs, and the move actually played as a small dot. A small dot also marks the last stone played. The move strip above the board describes that next move."],
   ["Ownership", "Shades each point by KataGo's ownership estimate (darker = Black's, lighter = White's, stronger = more certain)."],
   ["Area Chart", "Per player, every move on the board: in full colour when KataGo gave it at least 10 % of its preferred move's visits, otherwise greyed by its loss. Dashed lines mark the fourth-line areas. The table lists, per area, how often the player played there, how often KataGo preferred it, and how often the player followed KataGo there."],
   ["Phases", "Black and White compared measure by measure, for the whole game or one phase."],
@@ -387,7 +413,7 @@ ${MTABLE([
 
 <h3>8. Reading the tables</h3>
 ${MTABLE([
-  ["Rank", "The player's rank on that server at the time of the game; professional tiers as in Section 1. Use the Server filter to compare like with like: KGS and OGS ranks differ, and KGS here includes dan players only."],
+  ["Rank", "The player's rank on that server at the time of the game. Use the Server filter to compare like with like: KGS and OGS ranks differ, and the KGS games here are mostly between dan players (every KGS game has a player of 4 dan or stronger)."],
   ["Era", "Pre-AI (to 2015), Early AI (2016–2018), Current AI (2019 onward), by the date of the game."],
   ["Colour", "Rows for Black players only, White players only, or both."],
   ["Grey rows", "Fewer than 50 moves of data: shown, but too few to interpret."],
@@ -397,6 +423,9 @@ ${MTABLE([
 <h3>9. Limitations</h3>
 <ul>
   <li>One game is a small sample: a single game estimates the level played to about ±1.2 ranks.</li>
+  <li>The scale ends at 9 dan: the strongest KataGo-Human profile and the strongest declared ranks in the data are 9d.
+    Play at professional level is graded as top amateur, and differences between such players are compressed.</li>
+  <li>The model's error against declared ranks is 1.96 ranks on average (cross-validated, even games within the rank gap); part of that is the game-to-game variation of the players themselves.</li>
   <li>Declared ranks are themselves approximate, and KGS and OGS ranks are not on the same scale.</li>
   <li>The KataGo-Human profiles describe the human play the network was trained on; older games may compare differently.</li>
   <li>Opening stretches tend to read high: memorised openings and standard sequences match KataGo at any strength.</li>
@@ -466,7 +495,11 @@ function gameIndex() {   // id -> {file, players: {B: {phase: row}, W: {...}}}
   });
   return out;
 }
-const handicapLabel = r => r && r.handicap >= 2 ? `Handicap ${r.handicap}` : "Even";
+// HA[1] with komi 0 (Black first, no komi: a one-stone handicap) was shown as "Even" until 2026-11-27; the export
+// keeps HA >= 2 only, so the komi tells them apart
+const noKomi = r => r && !(r.handicap >= 2) && r.komi !== "" && r.komi != null && parseFloat(r.komi) === 0;
+const handicapKind = r => r && r.handicap >= 2 ? "hc" : noKomi(r) ? "nokomi" : "even";
+const handicapLabel = r => r && r.handicap >= 2 ? `Handicap ${r.handicap}` : noKomi(r) ? "No komi" : "Even";
 // A negative loss: the position looked better for the player after the move than KataGo's shallow search estimated
 // before it (search depth / noise). Shown as a gain; averages count it as 0, error logic never counts it.
 const lossText = v => v === null || v === undefined ? "–" : v < 0 ? `${(+v).toFixed(2)} (gain)` : (+v).toFixed(2);
@@ -487,21 +520,25 @@ function games() {
   const list = list0
     .filter(g => !gameFilter.band || has(g, r => r.band === gameFilter.band))
     .filter(g => !gameFilter.rank || has(g, r => r.rank === gameFilter.rank))
-    .filter(g => !gameFilter.handicap || (gameFilter.handicap === "even") === (any(g).handicap < 2))
+    .filter(g => !gameFilter.handicap || gameFilter.handicap === handicapKind(any(g)))
     .filter(g => !gameFilter.q || (g.file + " " + playerInfo(g, "B") + " " + playerInfo(g, "W")).toLowerCase().includes(gameFilter.q.toLowerCase()))
     .sort((a, b) => (any(a).date || "").localeCompare(any(b).date || "") || a.file.localeCompare(b.file));
   let h = `<div class="filters">Rank band <select id="fb"><option value="">all</option>${bands.map(b => `<option ${b === gameFilter.band ? "selected" : ""}>${b}</option>`).join("")}</select>
     ${eraOptions()}
     Rank <select id="fr"><option value="">all</option>${ranksL.map(b => `<option ${b === gameFilter.rank ? "selected" : ""}>${b}</option>`).join("")}</select>
-    Handicap <select id="fh"><option value="">all</option><option value="even" ${gameFilter.handicap === "even" ? "selected" : ""}>Even</option><option value="hc" ${gameFilter.handicap === "hc" ? "selected" : ""}>Handicap</option></select>
+    Handicap <select id="fh"><option value="">all</option><option value="even" ${gameFilter.handicap === "even" ? "selected" : ""}>Even</option><option value="nokomi" ${gameFilter.handicap === "nokomi" ? "selected" : ""}>No komi</option><option value="hc" ${gameFilter.handicap === "hc" ? "selected" : ""}>Handicap</option></select>
     Search <input id="fq" placeholder="game or player" value="${esc(gameFilter.q)}"> <span class="muted">${list.length} games — click one to open it</span></div>`;
   const side = (g, c, k) => { const r = (g.players[c] || {}).overall; return r ? fmt(k, r[k]) : "–"; };
   h += `<div class="scroll"><table class="sortable"><tr><th class="l">Game</th><th class="l">Date</th><th class="l">Black</th><th class="l">White</th><th class="l">Handicap</th>` +
-       `<th>Best Move %<br>B · W</th><th>Avg Point Loss<br>B · W</th><th>Game Difficulty (9d) %<br>B · W</th><th>Engine Likeness %<br>B · W</th><th class="l">Note</th></tr>`;
+       `<th>Performance Rank<br>Black</th><th>Performance Rank<br>White</th><th>Best Move %<br>B · W</th><th>Avg Point Loss<br>B · W</th><th>Game Difficulty (9d) %<br>B · W</th><th>Engine Likeness %<br>B · W</th><th class="l">Note</th></tr>`;
   list.forEach((g, i) => {
-    const partial = ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? "Partial (not in totals)" : "";
+    const partial = ["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? "Partial (not in totals)"
+      : any(g).external ? "Tournament game, outside the data (graded only)"
+      : any(g).wide_gap ? "Rank gap over 2 (not in totals)" : "";
+    const pr = c => { const r = (g.players[c] || {}).overall; return r && r.performance != null
+      ? `<td data-sort="${r.performance}">${rankText(r.performance)} ± ${(+r.performance_sd).toFixed(1)}</td>` : `<td data-sort="">–</td>`; };
     h += `<tr class="click ${i % 2 === 0 ? "shade" : ""}" data-go="${esc(g.id)}"><td class="l">${esc(g.file)}</td><td class="l">${esc(any(g).date || "")}</td>` +
-      `<td class="l">${esc(playerInfo(g, "B"))}</td><td class="l">${esc(playerInfo(g, "W"))}</td><td class="l">${handicapLabel(any(g))}</td>` +
+      `<td class="l">${esc(playerInfo(g, "B"))}</td><td class="l">${esc(playerInfo(g, "W"))}</td><td class="l">${handicapLabel(any(g))}</td>` + pr("B") + pr("W") +
       ["top1", "mean_loss", "difficulty_9d", "engine_like_pct"].map(k => `<td>${side(g, "B", k)} · ${side(g, "W", k)}</td>`).join("") +
       `<td class="l muted">${partial}</td></tr>`;
   });
@@ -559,22 +596,19 @@ function boardSVG(board, n, marks) {   // the position after n moves; marks: {la
   }
   boardAt(board, n).forEach((col, k) => { const [x, y] = k.split(",").map(Number);
     s += `<circle cx="${pad + c * x}" cy="${pad + c * y}" r="${c * 0.47}" fill="${col === "B" ? "#1f1f1e" : "#f7f7f4"}" stroke="#333" stroke-width="${col === "B" ? 0 : 0.8}"/>`; });
-  // marks.last: the move just played (the position is after it) — a ring in the opposite colour on the stone, as
-  // game viewers mark the last move; a blue ring around it when it was KataGo's best. marks.best otherwise: a blue
-  // circle where KataGo would have played.
-  const same = marks && marks.best && marks.last && marks.best.toUpperCase() === marks.last.toUpperCase();
-  if (marks && marks.best && !same) { const p = gtpXY(marks.best, size); if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.42}" fill="none" stroke="#2a78d6" stroke-width="3"/>`; }
+  // The user's scheme (2026-11-27): filled discs, no rings — blue = KataGo's Best Move for the move to play, green =
+  // the other moves the player could have chosen (marks.good: 20 %+ of the best move's visits, the Match % rule); a
+  // small dot in the mover's colour = the move actually played next; a small contrasting dot on the last stone played.
+  const disc = (mv, fill) => { const p = gtpXY(mv, size); if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.4}" fill="${fill}" stroke="#ffffff" stroke-width="1"/>`; };
+  if (marks && marks.good) marks.good.split(" ").filter(Boolean).forEach(mv => disc(mv, "#2e9e5b"));
+  if (marks && marks.best) disc(marks.best, "#2a78d6");
+  if (marks && marks.next) {
+    const p = gtpXY(marks.next, size);
+    if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.17}" fill="${marks.nextColor === "W" ? "#f7f7f4" : "#1f1f1e"}" stroke="${marks.nextColor === "W" ? "#1f1f1e" : "#f7f7f4"}" stroke-width="1.2"/>`;
+  }
   if (marks && marks.last) {
     const p = gtpXY(marks.last, size);
-    if (p) {
-      const cx = pad + c * p[0], cy = pad + c * p[1];
-      if (same) s += `<circle cx="${cx}" cy="${cy}" r="${c * 0.56}" fill="none" stroke="#2a78d6" stroke-width="3"/>`;
-      s += `<circle cx="${cx}" cy="${cy}" r="${c * 0.24}" fill="none" stroke="${marks.color === "W" ? "#1f1f1e" : "#f7f7f4"}" stroke-width="2.4"/>`;
-    }
-  }
-  if (marks && marks.next) {   // the next move: a small dot in that player's colour on the empty point
-    const p = gtpXY(marks.next, size);
-    if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.2}" fill="${marks.nextColor === "W" ? "#f7f7f4" : "#1f1f1e"}" stroke="${marks.nextColor === "W" ? "#333" : "#f7f7f4"}" stroke-width="1.2"/>`;
+    if (p) s += `<circle cx="${pad + c * p[0]}" cy="${pad + c * p[1]}" r="${c * 0.13}" fill="${marks.color === "W" ? "#1f1f1e" : "#f7f7f4"}"/>`;
   }
   return s + "</svg>";
 }
@@ -611,27 +645,75 @@ function perMoveChart(title, unit, moves, key, opts) {
   if (opts.cursor) s += `<line x1="${x(opts.cursor)}" x2="${x(opts.cursor)}" y1="${T}" y2="${H - B}" stroke="#2a78d6" stroke-width="1.5"/>`;
   return `<div class="card" style="margin-bottom:10px"><h3>${esc(title)}</h3><div class="unit">${esc(unit)}</div>${s}</div>`;
 }
-// ---- game timeline: rank over the game, key moments, engine likeness (lanes per player, like Zhangqi's chart) ----
-// Rank lane: each move shows the Performance Rank of the 30 moves of that player around it (KataGo's human rank
-// profiles, calibrated on whole games); dark and labelled where the window is confident (± 2 ranks or less), faint
-// where it is not. Key moments: Tough Spots (a 9d errs >= 50 %), green when the player lost under 2 points there,
-// red otherwise. Engine likeness: the AI-like spans. Hover for numbers, click to go to the move.
-const TL_SURE = 2.0, TL_MAYBE = 3.0;
-// Rank colour: the validated sequential blue ramp (dataviz reference palette), steps 100 (15k) to 400 (9d) only —
-// black text clears 4.5:1 on all of them (5.1 at 400; 450 and darker fall below), so every label stays black.
-const RANK_RAMP = ["#cce3fd", "#b6d5f8", "#9dc8f7", "#84b9f3", "#6aabf1", "#519ced", "#338ced"];
-function rankShade(v) {
-  const t = Math.max(0, Math.min(1, (v + 14) / 23)) * (RANK_RAMP.length - 1);
-  const i = Math.min(RANK_RAMP.length - 2, Math.floor(t)), f = t - i;
-  const a = RANK_RAMP[i], b = RANK_RAMP[i + 1], mix = k => Math.round(parseInt(a.substr(k, 2), 16) * (1 - f) + parseInt(b.substr(k, 2), 16) * f);
-  return `rgb(${mix(1)}, ${mix(3)}, ${mix(5)})`;
+// Help: a "?" button beside a title opens one shared dialog with the explanation (Zhangqi-style ⓘ tips), so the
+// charts carry no paragraphs of legend text.
+const HELP = {};
+function helpButton(title, html) {
+  const id = "h" + Object.keys(HELP).length;
+  HELP[id] = { title, html };
+  return `<button class="helpbtn" data-help="${id}" aria-label="Help: ${esc(title)}" title="What does this show?">?</button>`;
 }
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-help]");
+  if (!b) return;
+  const h = HELP[b.dataset.help], dlg = document.getElementById("helpdlg");
+  dlg.querySelector("h3").textContent = h.title;
+  dlg.querySelector(".helpbody").innerHTML = h.html;
+  dlg.showModal();
+});
+// ---- game timeline, after Zhangqi's 吻合度 chart (the user's screenshots, 2026-11-27) ----------------------------
+// Per player: a Best move lane (a mark on every move that was KataGo's first choice), a Good move lane (a mark on every
+// move with 20 %+ of the best move's visits, the Match % rule) carrying the highlights — runs of good play (at least
+// HL_MIN of the player's moves, at least HL_SHARE of them good, never two misses in a row), each labelled with the
+// level the player played at over it (the mean of the per-move levels: the Performance Rank model on the 12 moves
+// around each move) — then Key moments (Tough Spots, found ● / missed ✕) and Engine-like (the AI-like spans).
+// Marks join into bars where moves follow each other, as in Zhangqi's chart. Hover for details, click to go to a move.
+// Highlights (the user's design, 2026-11-27): built on the move quality — each informative move's closest policy
+// network (engine_rank.move_quality: 15k ... 9d, 12 = KataGo); moves every network would play carry none. A high-quality
+// move is one closest to 9d or KataGo (HL_HIGH+). A highlight: at least HL_MIN informative moves, at least HL_SHARE of
+// them high-quality, never two others in a row; labelled with the run's mean move quality. Runs at most HL_MERGE
+// moves apart merge (move-weighted mean).
+const HL_HIGH = 9, HL_BREAK = 5, HL_MIN = 6, HL_SHARE = 0.8, HL_MERGE = 2;   // a move below HL_BREAK (a real mistake) ends a run   // merge only runs that touch (one opponent move apart):
+// wider merging chained separate runs into one long bar whose in-between moves pulled the label down (R3: 1-75 at 8.8)
+const TL_MARK = { B: "#d65a5a", W: "#4f86cf" };   // the two players' identities (red / blue, as Zhangqi); text stays black
+const TL_HIGHLIGHT = "#6cc04a";
 function rankLabel(v) { const r = Math.round(v); return r >= 1 ? `${r}d` : `${1 - r}k`; }
+const isBest = m => m.engine_rank === 0;
+const isGood = m => m.accuracy !== null && m.accuracy !== undefined && m.accuracy !== "" && m.accuracy >= 20;
+function levelText(v) { return v >= 11.95 ? "AI" : rankText(v); }
+function highlights(list, levels) {
+  const ms = (levels || []).map(([move, q]) => ({ move, q: Math.max(-14, q) }));   // informative moves only
+  const out = [];
+  let run = [], low = 0;
+  const high = m => m.q >= HL_HIGH;
+  const close = () => {
+    while (run.length && !high(run[run.length - 1])) { run.pop(); low--; }   // a run ends on a high-quality move
+    if (run.length >= HL_MIN && (run.length - low) / run.length >= HL_SHARE)
+      out.push({ a: run[0].move, b: run[run.length - 1].move, n: run.length, good: run.length - low,
+                 level: run.reduce((x, m) => x + m.q, 0) / run.length });
+    run = []; low = 0;
+  };
+  ms.forEach(m => {
+    if (high(m)) { run.push(m); return; }
+    const prevLow = run.length && !high(run[run.length - 1]);
+    if (!run.length || m.q < HL_BREAK || prevLow || (run.length - low) / (run.length + 1) < HL_SHARE) { close(); return; }
+    run.push(m); low++;
+  });
+  close();
+  const merged = [];
+  out.forEach(h => {
+    const last = merged[merged.length - 1];
+    if (last && h.a - last.b <= HL_MERGE) {
+      last.level = (last.level * last.n + h.level * h.n) / (last.n + h.n);
+      last.n += h.n; last.good += h.good; last.b = h.b; last.parts.push(h);
+    } else merged.push(Object.assign({ parts: [h] }, h));
+  });
+  return merged;
+}
 function timelineChart(d) {
   const all = ["B", "W"].flatMap(c => d.moves[c]);
-  if (!d.stretches) return "";
-  // drawn at the panel's width (about 600 px), so its text is shown near its real size
-  const W = 610, L = 92, R = 74, LANE = 22, GAP = 6, BLOCK = 3 * LANE + 2 * GAP, T = 22, AX = 24, SEP = 28;
+  if (!all.length) return "";
+  const W = 610, L = 92, R = 84, LANE = 20, GAP = 5, LANES = 4, BLOCK = LANES * LANE + (LANES - 1) * GAP, T = 22, AX = 24, SEP = 28;
   const xmax = d.board ? d.board.moves.length : Math.max(...all.map(m => m.move));
   const H = T + 2 * BLOCK + SEP + AX;
   const x = v => L + (W - L - R) * (v - 1) / Math.max(1, xmax - 1);
@@ -641,42 +723,62 @@ function timelineChart(d) {
   ["B", "W"].forEach((c, i) => {
     const y0 = T + i * (BLOCK + SEP), list = d.moves[c];
     const lane = k => y0 + k * (LANE + GAP);
-    s += `<rect x="${L}" y="${y0 - 3}" width="${W - L - R}" height="${BLOCK + 6}" fill="${c === "B" ? "#f4e7e3" : "#e5ecf4"}" opacity="0.55" rx="4"/>`;
+    s += `<rect x="${L}" y="${y0 - 3}" width="${W - L - R}" height="${BLOCK + 6}" fill="${c === "B" ? "#f4e7e3" : "#e5ecf4"}" opacity="0.55" rx="4" pointer-events="none"/>`;
     s += `<text x="${L - 8}" y="${y0 - 7}" text-anchor="end" font-weight="700" font-size="13" fill="#111">${COLOR_NAMES[c]}</text>`;
-    ["Rank", "Key moments", "Engine-like"].forEach((n, k) => s += `<text x="${L - 8}" y="${lane(k) + 15}" text-anchor="end" font-size="12" fill="#111">${n}</text>`);
-    // rank lane: the player's stretches of steady play (after the opening), each the mean level of its own moves;
-    // colour = rank, opacity = how sure (a short stretch says less), label when there is room
-    ((d.stretches || {})[c] || []).forEach(([a, b, v, sd]) => {
-      const x0 = x(a) - cw / 2, w = Math.max(3, x(b) - x(a) + cw);
-      const unsure = sd > TL_MAYBE;   // a short stretch: dashed outline (the ± is on hover)
-      const tip = `${COLOR_NAMES[c]}, moves ${a}–${b}: played like ${rankText(v)} ± ${sd.toFixed(1)} (the mean of these moves)` + (sd > TL_MAYBE ? " — a short stretch, so a rough reading" : "") + (a <= 40 ? " — opening moves often match KataGo from memory, so this can read high" : "");
-      s += `<rect x="${x0 + 0.75}" y="${lane(0) + 0.75}" width="${Math.max(1.5, w - 1.5)}" height="${LANE - 1.5}" rx="3" fill="${rankShade(v)}" stroke="${unsure ? "#13243a" : "#fff"}" stroke-width="1.2" ${unsure ? 'stroke-dasharray="3 2"' : ""} data-move="${a}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
-      if (w >= 30) s += `<text x="${x0 + w / 2}" y="${lane(0) + 15.5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#111" pointer-events="none">${rankText(v)}</text>`;
+    ["Best move", "Good move", "Key moments", "Engine-like"].forEach((n, k) => s += `<text x="${L - 8}" y="${lane(k) + 14}" text-anchor="end" font-size="12" fill="#111">${n}</text>`);
+    // click anywhere in the player's block to go to that move (a target per move, the full height, under the marks)
+    const hls = highlights(list, (d.levels || {})[c]);
+    list.forEach(m => {
+      const h = hls.find(h_ => h_.a <= m.move && m.move <= h_.b);
+      const tip = `Move ${m.move} (${COLOR_NAMES[c]}): ${isBest(m) ? "KataGo's first choice" : isGood(m) ? "a good move (20 %+ of the best move's visits)" : "not among KataGo's good moves"} · lost ${lossText(m.loss)}` +
+        (h ? ` · in a highlight, moves ${h.a}–${h.b}: ${h.good} of ${h.n} informative moves at 9d or KataGo level, average move quality ${levelText(h.level)}` +
+             (h.parts.length > 1 ? ` (the average of ${h.parts.length} runs: ${h.parts.map(p => `${p.a}–${p.b} ${levelText(p.level)}`).join(", ")})` : "") : "");
+      s += `<rect x="${x(m.move) - cw / 2}" y="${y0 - 3}" width="${cw}" height="${BLOCK + 6}" fill="transparent" data-move="${m.move}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+    });
+    // the per-move marks (consecutive moves join into bars)
+    [[isBest, 0], [isGood, 1]].forEach(([f, k]) => list.filter(f).forEach(m => {
+      s += `<rect x="${x(m.move) - cw / 2}" y="${lane(k) + 4}" width="${cw}" height="${LANE - 8}" fill="${TL_MARK[c]}" pointer-events="none"/>`;
+    }));
+    // highlights on the good-move lane
+    hls.forEach(h => {
+      const x0 = x(h.a) - cw / 2, w = Math.max(6, x(h.b) - x(h.a) + cw);
+      const tip = `${COLOR_NAMES[c]}, moves ${h.a}–${h.b}: ${h.good} of ${h.n} moves good — played at ${rankText(h.level)} level over this area` +
+        (h.parts.length > 1 ? ` (the average of ${h.parts.length} runs: ${h.parts.map(p => `${p.a}–${p.b} ${rankText(p.level)}`).join(", ")})` : "") +
+        (h.a <= 40 ? " — opening moves often match KataGo from memory" : "");
+      s += `<rect x="${x0}" y="${lane(1) + 1}" width="${w}" height="${LANE - 2}" rx="3" fill="${TL_HIGHLIGHT}" stroke="#2d5a1b" stroke-width="0.8" pointer-events="none"/>`;
+      if (w >= 26) s += `<text x="${x0 + w / 2}" y="${lane(1) + 14}" text-anchor="middle" font-size="12" font-weight="700" fill="#111" pointer-events="none">${levelText(h.level)}</text>`;
     });
     // key moments
     list.filter(m => m.p_err_9d >= 0.5).forEach(m => {
       const found = m.loss !== null && m.loss < 2;
       const tip = `Move ${m.move} (${COLOR_NAMES[c]}): Tough Spot (a 9d errs ${Math.round(100 * m.p_err_9d)} %) — ${found ? "found" : "missed"}, lost ${lossText(m.loss)}`;
-      // found: a green dot; missed: a red cross — shape tells them apart, not colour alone
-      const cx = x(m.move), cy = lane(1) + LANE / 2;
+      const cx = x(m.move), cy = lane(2) + LANE / 2;
       s += found ? `<circle cx="${cx}" cy="${cy}" r="4.5" fill="#0aac23" stroke="#fff" stroke-width="1.5"/>`
                  : `<path d="M${cx - 4} ${cy - 4} L${cx + 4} ${cy + 4} M${cx - 4} ${cy + 4} L${cx + 4} ${cy - 4}" stroke="#dc3c3d" stroke-width="2.4" stroke-linecap="round"/>`;
-      s += `<rect x="${cx - 6}" y="${lane(1)}" width="12" height="${LANE}" fill="transparent" data-move="${m.move}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+      s += `<rect x="${cx - 6}" y="${lane(2)}" width="12" height="${LANE}" fill="transparent" data-move="${m.move}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
     });
-    // engine-like spans
     spansOf(list, c).forEach(([a, b]) => {
       const tip = `${COLOR_NAMES[c]}: AI-like span, moves ${a}–${b} (Engine Likeness over 50 % on consecutive moves)`;
-      s += `<rect x="${x(a) - 3}" y="${lane(2) + 2}" width="${Math.max(6, x(b) - x(a) + 6)}" height="${LANE - 4}" rx="3" fill="#fbb315" stroke="#191919" stroke-width="0.8" data-move="${a}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+      s += `<rect x="${x(a) - 3}" y="${lane(3) + 2}" width="${Math.max(6, x(b) - x(a) + 6)}" height="${LANE - 4}" rx="3" fill="#fbb315" stroke="#191919" stroke-width="0.8" data-move="${a}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
     });
-    // right: whole-game summary
+    // right: the player's shares, as Zhangqi shows them
+    const scored = list.filter(m => m.accuracy !== null && m.accuracy !== undefined && m.accuracy !== "");
+    const pct = f => scored.length ? `${(100 * scored.filter(f).length / scored.length).toFixed(1)} %` : "–";
     const tough = list.filter(m => m.p_err_9d >= 0.5), found = tough.filter(m => m.loss !== null && m.loss < 2).length;
-    const row = (d.rows || []).find(r => r.color === c && r.phase === "overall");
-    s += `<text x="${W - R + 8}" y="${lane(0) + 15}" font-size="12" font-weight="600" fill="#111">${row && row.performance != null ? `${rankText(row.performance)} ± ${row.performance_sd.toFixed(1)}` : ""}</text>`;
-    s += `<text x="${W - R + 8}" y="${lane(1) + 15}" font-size="12" fill="#111">${found}/${tough.length} found</text>`;
+    s += `<text x="${W - R + 8}" y="${lane(0) + 14}" font-size="12" font-weight="600" fill="#111">${pct(isBest)}</text>`;
+    s += `<text x="${W - R + 8}" y="${lane(1) + 14}" font-size="12" font-weight="600" fill="#111">${pct(isGood)}</text>`;
+    s += `<text x="${W - R + 8}" y="${lane(2) + 14}" font-size="12" fill="#111">${found}/${tough.length} found</text>`;
   });
   for (let t = 20; t <= xmax; t += 20) s += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#111">${t}</text>`;
   if (cur.move) s += `<line x1="${x(cur.move)}" x2="${x(cur.move)}" y1="${T - 4}" y2="${H - AX}" stroke="#2a78d6" stroke-width="1.5" pointer-events="none"/>`;
-  return `<div class="chart"><h3 class="sub">Game timeline</h3><div style="color:#111;font-size:12px">Rank: the whole game cut into stretches where the level held steady, each showing the mean level of its moves (opening stretches tend to read high: memorised moves match KataGo; a dashed outline = a short stretch, a rough reading) · Key moments: Tough Spots, <span style="color:#0aac23">●</span> found / <span style="color:#dc3c3d">✕</span> missed · Engine-like: AI-like spans · hover for details, click to go to the move</div>${s}</svg></div>`;
+  const help = helpButton("Game timeline", `<dl class="helpdl">
+    <dt>Best move</dt><dd>A mark on every move that was KataGo's first choice. The share is on the right.</dd>
+    <dt>Good move</dt><dd>A mark on every move with at least 20 % of KataGo's best move's visits (the Match % rule). The share is on the right.</dd>
+    <dt><span style="background:${TL_HIGHLIGHT};padding:0 5px;border-radius:3px">Highlights</span></dt><dd>Runs of high-quality moves. Each move's quality is the policy network its choice is closest to: a KataGo-Human rank profile (15k … 9d) or KataGo itself ("AI"); moves every network would play are not counted. A highlight has at least 6 such moves, 80 % or more of them at 9d or KataGo level; a move closest to a profile below 5d (a real mistake) ends it. It is labelled with the average quality of all its moves. Only runs that touch are joined. Opening runs can read high: memorised moves match KataGo.</dd>
+    <dt>Key moments</dt><dd>Tough Spots (a 9d errs there half the time or more): <span style="color:#0aac23">●</span> the player found a good move, <span style="color:#dc3c3d">✕</span> missed it.</dd>
+    <dt>Engine-like</dt><dd>Spans of consecutive moves with Engine Likeness over 50 %.</dd>
+  </dl><p>Hover for details; click anywhere on a player's lanes to go to that move.</p>`);
+  return `<div class="chart"><h3 class="sub">Game timeline ${help}</h3>${s}</svg></div>`;
 }
 
 function spansOf(list, color) {
@@ -697,6 +799,7 @@ function playerCard(g, c, r) {
   const v = (k, f) => r && r[k] !== null && r[k] !== undefined && r[k] !== "" ? f(r[k]) : "–";
   return `<div class="pcard"><div class="who"><span class="stone" style="background:${c === "B" ? "#1f1f1e" : "#fafaf7"}"></span>${esc(COLOR_NAMES[c])} · ${esc(playerInfo(g, c))}</div>
     <div class="perf">${r && r.performance != null ? `${rankText(r.performance)} <small>± ${r.performance_sd.toFixed(1)}</small>` : "–"}</div>
+    ${r && r.performance == null ? `<div class="pnote">${noKomi(r) ? "Not graded: a no-komi game (the model is trained on even games)" : "Not graded: too few moves for a Performance Rank"}</div>` : ""}
     <div class="perflabel">Performance Rank (the level played in this game)</div>
     <div class="note">${esc(perfNote(r))}</div>
     <div class="kpis">
@@ -714,6 +817,8 @@ function gameView(id) {
   main.innerHTML = `<button class="back" id="back">← All games</button>
     <h2>${esc(g.file)} · ${esc(any.date || "")} · ${handicapLabel(any)}${any.komi !== "" && any.komi !== undefined ? " · komi " + esc(any.komi) : ""}</h2>
     ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? `<p class="muted">Partially analysed: shown here, not counted in the totals.</p>` : ""}
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.external) ? `<p class="gapnote">A tournament game from outside the data (shared by the player). It is analysed exactly like the other games and graded by the model, on the KGS rank scale, but it is not counted in any total and the model is not trained on it. The declared ranks are the tournament's.</p>` : ""}
+    ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.wide_gap) ? `<p class="gapnote">The players' declared ranks are more than 2 ranks apart. The game is rated (the Performance Rank does not use the declared rank) but is not counted in the totals and the model is not trained on it.</p>` : ""}
     <div class="pcards" id="pcards">${["B", "W"].filter(c => g.players[c]).map(c => playerCard(g, c, g.players[c].overall)).join("")}</div>
     <div id="movestrip" class="card movestrip"></div>
     <div class="gv">
@@ -743,7 +848,7 @@ function gameView(id) {
       cur.groups = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c] }));
       document.getElementById("pcards").innerHTML = ["B", "W"].filter(c => byColor[c]).map(c => playerCard(g, c, byColor[c].overall)).join("");
     }
-    cur.move = Math.min(1, data.board ? data.board.moves.length : 0);
+    cur.move = Math.min(1, data.board ? data.board.moves.length : 0);   // move 0 on screen: the empty board, Black to play
     drawGame();
   });
 }
@@ -821,7 +926,7 @@ function butterfly(groups) {
     }
   });
   sv += `</svg>`;
-  return tabs + sv + `<p style="font-size:12px;margin:6px 0 0">Longer bars are higher values; for Avg Point Loss lower is better. Game Difficulty and Tough Spots describe the positions the player faced, not how well they played.</p>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center">${tabs}${helpButton("Phases", "<p>Black's bars go left, White's right, for each measure, over the whole game or one phase.</p><p>Longer bars are higher values; for Avg Point Loss lower is better. Game Difficulty and Tough Spots describe the positions the player faced, not how well they played.</p>")}</div>` + sv;
 }
 
 // Sortable lists: a click on a column header sorts the rows by that column (again: the other way). Numbers,
@@ -839,7 +944,8 @@ document.addEventListener("click", e => {
   const rows = [...table.querySelectorAll("tr")].filter(r => r !== head);
   const desc = !(table.dataset.sortCol == col && table.dataset.sortDir === "desc");
   rows.sort((a, b) => {
-    const x = sortKey(a.children[col] ? a.children[col].textContent : ""), y = sortKey(b.children[col] ? b.children[col].textContent : "");
+    const key = r => { const td = r.children[col]; if (!td) return null; if (td.dataset.sort !== undefined) return td.dataset.sort === "" ? null : +td.dataset.sort; return sortKey(td.textContent); };
+    const x = key(a), y = key(b);
     if (x === null || y === null) return x === null ? (y === null ? 0 : 1) : -1;
     const r = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y));
     return desc ? -r : r;
@@ -871,7 +977,7 @@ function perfText(r) {
 function perfNote(r) {   // performance_split: engine-side minus human-style (profile) estimate; 2+ ranks apart is named
   const s = r && r.performance_split;
   if (s == null || Math.abs(s) < 2) return "";
-  return s > 0 ? `Engine stats ${s.toFixed(1)} ranks stronger than human-style play` : `Human-style play ${(-s).toFixed(1)} ranks stronger than engine stats`;
+  return s > 0 ? `Engine rank ${s.toFixed(1)} ranks above human-style play` : `Human-style play ${(-s).toFixed(1)} ranks above the engine rank`;
 }
 
 function moveRow(n) {   // the analysed row for move n (either player), or null
@@ -889,22 +995,23 @@ function drawGame() {
     // Fixed layout: controls, board, then a one-line label and the same detail rows for every move (values or "–"),
     // so nothing in the panel changes size while stepping through the game.
     const pct = v => v === null || v === undefined ? "–" : Math.round(100 * v) + " %";
-    const label = `Move ${cur.move} of ${total}` + (m ? ` · ${COLOR_NAMES[m.color]} · ${PHASE_NAMES[m.phase]}` :
-      ` · ${COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || ""} · not analysed`);
-    const mover = COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || "";
-    const boardKey = m ? (m.played.toUpperCase() === m.engine_best.toUpperCase()
-        ? `After move ${cur.move} — ${mover} played ${m.played} (ringed), KataGo's Best Move (blue ring) · dot: next move`
-        : `After move ${cur.move} — ${mover} played ${m.played} (ringed) · blue circle: KataGo's Best Move ${m.engine_best} · dot: next move`)
-      : `After move ${cur.move} — ${mover}'s move is ringed · not analysed (no Best Move)`;
+    const label = `Move ${cur.move - 1} of ${total}` + (cur.move > total ? " · end of the game" : ` · next: move ${cur.move}, ` +
+      (m ? `${COLOR_NAMES[m.color]} · ${PHASE_NAMES[m.phase]}` : `${COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || ""} · not analysed`));
+    const toPlay = COLOR_NAMES[(d.board.moves[cur.move - 1] || [""])[0]] || "";
+    const boardKey = cur.move > total ? "" : `${toPlay} to play · blue = KataGo's Best Move` + (m ? ` ${m.engine_best}` : "") +
+      " · green = other good moves (20 %+ of the best move's visits) · small dot = played" + (m ? ` ${m.played}` : "");
     box.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
         <button class="back" data-step="-10">«</button><button class="back" data-step="-1">◀</button>
-        <input type="range" id="mvslider" min="1" max="${total}" value="${cur.move}" style="flex:1;min-width:80px">
+        <input type="range" id="mvslider" min="0" max="${total}" value="${cur.move - 1}" style="flex:1;min-width:80px">
         <button class="back" data-step="1">▶</button><button class="back" data-step="10">»</button>
         <label style="white-space:nowrap"><input type="checkbox" id="owntoggle" ${cur.showOwn ? "checked" : ""}> Ownership</label></div>` +
-      boardSVG(d.board, cur.move, Object.assign(m ? { last: m.played, best: m.engine_best, color: m.color }
-        : { last: d.board.moves[cur.move - 1] && d.board.moves[cur.move - 1][1], color: (d.board.moves[cur.move - 1] || [""])[0] },
-        { own: cur.showOwn && d.board.own ? d.board.own[String(cur.move - 1)] : null,
-          next: d.board.moves[cur.move] && d.board.moves[cur.move][1], nextColor: (d.board.moves[cur.move] || [""])[0] })) +
+      // the position before the move under review: its previous move ringed, KataGo's Best Move (blue circle), the
+      // move played (dot; inside the blue circle when it was the Best Move)
+      boardSVG(d.board, cur.move - 1, { last: d.board.moves[cur.move - 2] && d.board.moves[cur.move - 2][1],
+          color: (d.board.moves[cur.move - 2] || [""])[0], best: m ? m.engine_best : null,
+          good: m && d.board.good ? d.board.good[String(cur.move - 1)] : null,
+          next: d.board.moves[cur.move - 1] && d.board.moves[cur.move - 1][1], nextColor: (d.board.moves[cur.move - 1] || [""])[0],
+          own: cur.showOwn && d.board.own ? d.board.own[String(cur.move - 1)] : null }) +
       "";
     // the current move's data: a strip between the player cards and the board (the user's layout, 2026-11-27)
     const cell = (k, v) => `<div class="mcell"><div class="mv">${v}</div><div class="ml">${k}</div></div>`;
@@ -918,7 +1025,7 @@ function drawGame() {
       cell("Engine Likeness", m ? pct(m.p_assisted) : "–") +
       cell("Shape / Best Shape", m && m.shape ? `${esc(m.shape)} / ${esc(m.shape_best || "–")}` : "–") +
       `</div>${m && m.decided ? `<div class="mnote">Decided position: left out of Engine Likeness.</div>` : !m ? `<div class="mnote">This move is not analysed.</div>` : ""}`;
-    document.getElementById("mvslider").oninput = e => { cur.move = +e.target.value; drawGame(); };
+    document.getElementById("mvslider").oninput = e => { cur.move = +e.target.value + 1; drawGame(); };
     const ot = document.getElementById("owntoggle");
     if (ot) ot.onchange = e => { cur.showOwn = e.target.checked; drawGame(); };
   } else box.innerHTML = `<p class="muted">No board data for this game.</p>`;
@@ -999,7 +1106,7 @@ function whereCard(d, col) {
 </div>`;
 }
 
-function step(k) { if (!cur.game || !cur.game.board) return; cur.move = Math.max(1, Math.min(cur.game.board.moves.length, cur.move + k)); drawGame(); }
+function step(k) { if (!cur.game || !cur.game.board) return; cur.move = Math.max(1, Math.min(cur.game.board.moves.length + 1, cur.move + k)); drawGame(); }
 
 // ---- routing, hover -----------------------------------------------------------------------------
 function show(tab, arg) {
