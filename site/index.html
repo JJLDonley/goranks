@@ -12,9 +12,10 @@
   }
   * { box-sizing: border-box; }
   /* One centred column: readable on wide monitors, never squashed on narrow ones (it scrolls instead). */
-  .wrap { max-width: 1280px; min-width: 960px; margin: 0 auto; }
+  .wrap { max-width: 1320px; min-width: 760px; margin: 0 auto; }
   html { overflow-x: auto; }
   .card svg { max-height: 230px; display: block; }
+  .card svg.full { max-height: none; }   /* the timeline and the butterfly: shown at their own size, never squeezed */
   #boardbox svg { max-height: none; }
   .grid .card svg { max-height: 200px; }
   .moveinfo { margin-top: 8px; height: 20px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -24,7 +25,7 @@
   .wheregrid { display: grid; grid-template-columns: 1fr; gap: 14px; }
   .maps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 640px; }
   .maptitle { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
-  .mapkey { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+  .mapkey { font-size: 12px; color: var(--ink); margin: 6px 0 10px; }
   .mapkey span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-left: 8px; }
   .mapkey .k1 { background: #1f1f1e; margin-left: 0; } .mapkey .k2 { background: #b0b0ab; } .mapkey .k3 { background: #2a78d6; }
   table.areagrid { border-collapse: separate; border-spacing: 4px; width: 100%; max-width: 640px; }
@@ -36,10 +37,35 @@
   .stat .sv { font-size: 16px; font-weight: 600; } .stat .sl { font-size: 11px; color: var(--muted); }
   h3.sub { font-size: 14px; margin: 18px 0 8px; }
   .gamegrid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 8px; }
+  /* Game page (2026-11-27 redesign): player cards, a large board on the left, one tabbed analysis panel on the right */
+  .pcards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 14px; }
+  .pcard { background: var(--panel); border: 1px solid var(--grid); border-radius: 10px; padding: 12px 14px; }
+  .pcard .who { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+  .pcard .stone { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #444; flex: none; }
+  .pcard .perf { font-size: 26px; font-weight: 700; margin-top: 6px; letter-spacing: -0.3px; }
+  .pcard .perf small { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .pcard .perflabel { font-size: 12px; color: var(--ink); }
+  .pcard .note { font-size: 12px; color: #9a5b12; margin-top: 2px; min-height: 16px; }
+  .pcard .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .pcard .kpi .v { font-size: 17px; font-weight: 600; }
+  .pcard .kpi .l { font-size: 11px; color: var(--ink); }
+  .gv { display: grid; grid-template-columns: minmax(420px, 1.05fr) minmax(420px, 1fr); gap: 16px; align-items: start; }
+  .gv-board { position: sticky; top: 8px; }
+  .gv-panel { min-height: 400px; }
+  .gtabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--grid); margin: -4px -4px 10px; padding: 0 4px; }
+  .gtabs button { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 10px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .gtabs button.on { border-bottom-color: var(--accent); font-weight: 600; }
+  .probs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  tr.cur td { background: #dbe9fb; font-weight: 600; }
+  .probs table td, .probs table th { padding: 4px 6px; }
+  @media (max-width: 1100px) { .gv, .pcards, .probs { grid-template-columns: 1fr; } .gv-board { position: static; } }
+  #gametable { overflow-x: auto; }
+  #gametable td.l:first-child { max-width: 300px; white-space: normal; }
+  .cellnote { font-size: 11px; color: #9a5b12; font-weight: 400; margin-top: 2px; }
   body { margin: 0; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--surface); }
   header { padding: 18px 24px 0; }
   h1 { margin: 0; font-size: 22px; }
-  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .sub { color: var(--ink); font-size: 13px; margin-top: 2px; }
   nav { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid var(--grid); }
   nav button { border: 0; background: none; padding: 8px 14px; font: inherit; color: var(--ink-2); cursor: pointer; border-bottom: 2px solid transparent; }
   nav button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
@@ -73,7 +99,7 @@
   .tip { position: fixed; pointer-events: none; background: #1f1f1e; color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 4px; z-index: 10; display: none; white-space: nowrap; }
   .back { border: 1px solid var(--grid); background: var(--panel); border-radius: 4px; padding: 4px 10px; cursor: pointer; font: inherit; }
   .muted { color: var(--muted); }
-  svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  svg text { font: 11px system-ui, sans-serif; fill: var(--ink); }   /* black chart text (the user's call) */
   svg .lbl { fill: var(--ink); }
   .scroll { overflow-x: auto; }
   /* Moves list: 10 rows visible, the rest scroll; the column labels stay in view (sticky header). */
@@ -177,7 +203,7 @@ function groupedTable(groups, firstHeader, cols, opts = {}) {
       if (!r) return;
       const cls = [gi % 2 === 0 ? "shade" : "", ph === "overall" ? "first" : "",
                    opts.muteThin !== false && r.moves < MIN_MOVES ? "thin" : "", g.click ? "click" : ""].join(" ");
-      h += `<tr class="${cls}" ${g.click ? `data-go="${esc(g.click)}"` : ""}><td class="l">${ph === "overall" ? esc(g.label) : ""}</td>` +
+      h += `<tr class="${cls}" ${g.click ? `data-go="${esc(g.click)}"` : ""}><td class="l">${ph === "overall" ? esc(g.label) + (g.sub ? `<div class="cellnote">${esc(g.sub)}</div>` : "") : ""}</td>` +
            `<td class="l">${PHASE_NAMES[ph]}</td>` + cols.map(c => `<td>${esc(fmt(c[0], r[c[0]]))}</td>`).join("") + "</tr>";
     });
   });
@@ -271,7 +297,7 @@ ${HOWTO_ROWS("The table columns", [
   ["Moves Analyzed", "That player's own moves, in the phase shown (Overall, Opening 1–60, Middle 61–150, Endgame 151+)."],
   ["Best Move %", "Share of the player's moves that were KataGo's first choice."],
   ["Accuracy", "As in Gifu (Hawk Eye, LizzieYzy): per move, 100 when the player chose KataGo's first choice, otherwise the played move's search visits as a % of the best move's (0 when KataGo did not list it); the average over the player's moves."],
-  ["Match %", "As in Gifu (Hawk Eye): share of the player's moves that KataGo listed among its top 360 candidates with at least 10 % of the best move's visits."],
+  ["Match %", "As in Gifu (Hawk Eye): share of the player's moves that KataGo gave at least 20 % of its best move's visits (any point of the board counts, not only its top few candidates)."],
   ["Avg Point Loss", "Average Point Loss per move (gains count as 0, one move counts at most 30 points)."],
   ["Key Moment Top Move %", "A <b>Key Moment</b> is a position where players of the player's own declared rank would lose 2+ points on average (the KataGo-Human profile of that rank, its move probabilities times the losses of those moves). This is the share of Key Moments where the player found KataGo's first choice."],
   ["Game Difficulty (9d) %", "How often a 9d would go wrong in these positions: the average Position Difficulty (9d) over the positions that have one. An error rate, not a score."],
@@ -300,8 +326,9 @@ ${HOWTO_ROWS("Reading the tables", [
   ["Rank", "The rank the player had on that server at the time (pros: new / mid / top). KGS and OGS ranks are different scales — use the Server dropdown to compare like with like; KGS here has dan players only."],
   ["Era", "Pre-AI (up to 2015), Early AI (2016–2018), Current AI (2019 on), by the game's date."],
   ["Grey rows", "Fewer than 50 moves of data: shown, but too little to read much into."],
-  ["Performance Rank (game view, next to each player)", "The level this player played at in this game. Every rank from 15k to 9d has a profile for Black and one for White (a 7d as Black and a 7d as White are measured apart), built from all the analysed games of players declared at that rank: how often their moves match each of KataGo's 17 human rank profiles, point loss, blunders, top-move %. The player's moves are compared with every profile of their colour; the result is a probability for each rank, and the Performance Rank is their weighted average. Measured without any of the player's own games in the profiles. ± = how precisely the game's moves pin it down (rating a game's odd and even moves separately: about 1.2 ranks for a whole game; a game with fewer or less telling moves gets a wider ±). A player can play above or below their declared rank in any one game; the declared rank is not used."],
+  ["Performance Rank (game view, next to each player)", "The level this player played at in this game. A model trained on all analysed games combines two kinds of evidence: how closely the moves resemble each of KataGo's 17 human rank profiles (human-style play), and engine measures (point loss, blunders, KataGo's top move %). It is calibrated per server (KGS and OGS ranks are different scales) so strong players are not pulled toward the middle: rank by rank, the average Performance Rank stays within about one rank of the declared rank. Made without any of the player's own games. ± = how precisely the game pins the level down (about 1.2 ranks for a whole game), wider when the human-style view and the engine measures disagree; a gap of 2+ ranks is named next to the rank — engine stats far stronger than human-style play is what very strong, unusual or AI-assisted play looks like. Only games between players at most 2 ranks apart. A player can play above or below their declared rank in any one game; the declared rank is not used."],
   ["Colour", "Band and rank rows for Black players only, White players only, or both."],
+  ["Game timeline (game view)", "Three lanes per player along the moves. Rank: the player's whole game from move 1, cut where the level of play changes (at least 8 of the player's moves per stretch; about 5 stretches in a typical game), each stretch showing the mean level of its own moves — measured with the same model as the Performance Rank (engine measures and human-style play) on short stretches of moves. A stretch is not adjusted to the game's Performance Rank. The ± (on hover) grows as a stretch gets shorter; short stretches are drawn fainter. Opening stretches tend to read high: memorised openings and joseki match KataGo closely whatever the player's strength (each move's level is capped at 11d). Key moments: every Tough Spot (a 9d would err there 50 % of the time or more), green when the player lost less than 2 points, red when not. Engine-like: the AI-like spans (Engine Likeness over 50 % on consecutive counted moves). Forced and easy moves count for little in the rank lane: a move most players of every rank would play hardly changes the profiles' comparison."],
   ["Not in the tables", "The rank model's accuracy (in the training log); games that are not fully analysed."],
 ])}
 </details>`;
@@ -502,6 +529,74 @@ function perMoveChart(title, unit, moves, key, opts) {
   if (opts.cursor) s += `<line x1="${x(opts.cursor)}" x2="${x(opts.cursor)}" y1="${T}" y2="${H - B}" stroke="#2a78d6" stroke-width="1.5"/>`;
   return `<div class="card" style="margin-bottom:10px"><h3>${esc(title)}</h3><div class="unit">${esc(unit)}</div>${s}</div>`;
 }
+// ---- game timeline: rank over the game, key moments, engine likeness (lanes per player, like Zhangqi's chart) ----
+// Rank lane: each move shows the Performance Rank of the 30 moves of that player around it (KataGo's human rank
+// profiles, calibrated on whole games); dark and labelled where the window is confident (± 2 ranks or less), faint
+// where it is not. Key moments: Tough Spots (a 9d errs >= 50 %), green when the player lost under 2 points there,
+// red otherwise. Engine likeness: the AI-like spans. Hover for numbers, click to go to the move.
+const TL_SURE = 2.0, TL_MAYBE = 3.0;
+// Rank colour: the validated sequential blue ramp (dataviz reference palette), steps 100 (15k) to 400 (9d) only —
+// black text clears 4.5:1 on all of them (5.1 at 400; 450 and darker fall below), so every label stays black.
+const RANK_RAMP = ["#cce3fd", "#b6d5f8", "#9dc8f7", "#84b9f3", "#6aabf1", "#519ced", "#338ced"];
+function rankShade(v) {
+  const t = Math.max(0, Math.min(1, (v + 14) / 23)) * (RANK_RAMP.length - 1);
+  const i = Math.min(RANK_RAMP.length - 2, Math.floor(t)), f = t - i;
+  const a = RANK_RAMP[i], b = RANK_RAMP[i + 1], mix = k => Math.round(parseInt(a.substr(k, 2), 16) * (1 - f) + parseInt(b.substr(k, 2), 16) * f);
+  return `rgb(${mix(1)}, ${mix(3)}, ${mix(5)})`;
+}
+function rankLabel(v) { const r = Math.round(v); return r >= 1 ? `${r}d` : `${1 - r}k`; }
+function timelineChart(d) {
+  const all = ["B", "W"].flatMap(c => d.moves[c]);
+  if (!d.stretches) return "";
+  // drawn at the panel's width (about 600 px), so its text is shown near its real size
+  const W = 610, L = 92, R = 74, LANE = 22, GAP = 6, BLOCK = 3 * LANE + 2 * GAP, T = 22, AX = 24, SEP = 28;
+  const xmax = d.board ? d.board.moves.length : Math.max(...all.map(m => m.move));
+  const H = T + 2 * BLOCK + SEP + AX;
+  const x = v => L + (W - L - R) * (v - 1) / Math.max(1, xmax - 1);
+  const cw = Math.max(2, (W - L - R) / Math.max(1, xmax) * 2);   // one player's move is every other move
+  let s = `<svg class="full" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Game timeline">`;
+  [60, 150].forEach(b => { if (b < xmax) s += `<line x1="${x(b + 0.5)}" x2="${x(b + 0.5)}" y1="${T}" y2="${H - AX}" stroke="${css("--grid")}" stroke-dasharray="4 3"/>`; });
+  ["B", "W"].forEach((c, i) => {
+    const y0 = T + i * (BLOCK + SEP), list = d.moves[c];
+    const lane = k => y0 + k * (LANE + GAP);
+    s += `<rect x="${L}" y="${y0 - 3}" width="${W - L - R}" height="${BLOCK + 6}" fill="${c === "B" ? "#f4e7e3" : "#e5ecf4"}" opacity="0.55" rx="4"/>`;
+    s += `<text x="${L - 8}" y="${y0 - 7}" text-anchor="end" font-weight="700" font-size="13" fill="#111">${COLOR_NAMES[c]}</text>`;
+    ["Rank", "Key moments", "Engine-like"].forEach((n, k) => s += `<text x="${L - 8}" y="${lane(k) + 15}" text-anchor="end" font-size="12" fill="#111">${n}</text>`);
+    // rank lane: the player's stretches of steady play (after the opening), each the mean level of its own moves;
+    // colour = rank, opacity = how sure (a short stretch says less), label when there is room
+    ((d.stretches || {})[c] || []).forEach(([a, b, v, sd]) => {
+      const x0 = x(a) - cw / 2, w = Math.max(3, x(b) - x(a) + cw);
+      const unsure = sd > TL_MAYBE;   // a short stretch: dashed outline (the ± is on hover)
+      const tip = `${COLOR_NAMES[c]}, moves ${a}–${b}: played like ${rankText(v)} ± ${sd.toFixed(1)} (the mean of these moves)` + (sd > TL_MAYBE ? " — a short stretch, so a rough reading" : "") + (a <= 40 ? " — opening moves often match KataGo from memory, so this can read high" : "");
+      s += `<rect x="${x0 + 0.75}" y="${lane(0) + 0.75}" width="${Math.max(1.5, w - 1.5)}" height="${LANE - 1.5}" rx="3" fill="${rankShade(v)}" stroke="${unsure ? "#13243a" : "#fff"}" stroke-width="1.2" ${unsure ? 'stroke-dasharray="3 2"' : ""} data-move="${a}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+      if (w >= 30) s += `<text x="${x0 + w / 2}" y="${lane(0) + 15.5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#111" pointer-events="none">${rankText(v)}</text>`;
+    });
+    // key moments
+    list.filter(m => m.p_err_9d >= 0.5).forEach(m => {
+      const found = m.loss !== null && m.loss < 2;
+      const tip = `Move ${m.move} (${COLOR_NAMES[c]}): Tough Spot (a 9d errs ${Math.round(100 * m.p_err_9d)} %) — ${found ? "found" : "missed"}, lost ${lossText(m.loss)}`;
+      // found: a green dot; missed: a red cross — shape tells them apart, not colour alone
+      const cx = x(m.move), cy = lane(1) + LANE / 2;
+      s += found ? `<circle cx="${cx}" cy="${cy}" r="4.5" fill="#0aac23" stroke="#fff" stroke-width="1.5"/>`
+                 : `<path d="M${cx - 4} ${cy - 4} L${cx + 4} ${cy + 4} M${cx - 4} ${cy + 4} L${cx + 4} ${cy - 4}" stroke="#dc3c3d" stroke-width="2.4" stroke-linecap="round"/>`;
+      s += `<rect x="${cx - 6}" y="${lane(1)}" width="12" height="${LANE}" fill="transparent" data-move="${m.move}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+    });
+    // engine-like spans
+    spansOf(list, c).forEach(([a, b]) => {
+      const tip = `${COLOR_NAMES[c]}: AI-like span, moves ${a}–${b} (Engine Likeness over 50 % on consecutive moves)`;
+      s += `<rect x="${x(a) - 3}" y="${lane(2) + 2}" width="${Math.max(6, x(b) - x(a) + 6)}" height="${LANE - 4}" rx="3" fill="#fbb315" stroke="#191919" stroke-width="0.8" data-move="${a}" data-tip="${esc(tip)}" style="cursor:pointer"/>`;
+    });
+    // right: whole-game summary
+    const tough = list.filter(m => m.p_err_9d >= 0.5), found = tough.filter(m => m.loss !== null && m.loss < 2).length;
+    const row = (d.rows || []).find(r => r.color === c && r.phase === "overall");
+    s += `<text x="${W - R + 8}" y="${lane(0) + 15}" font-size="12" font-weight="600" fill="#111">${row && row.performance != null ? `${rankText(row.performance)} ± ${row.performance_sd.toFixed(1)}` : ""}</text>`;
+    s += `<text x="${W - R + 8}" y="${lane(1) + 15}" font-size="12" fill="#111">${found}/${tough.length} found</text>`;
+  });
+  for (let t = 20; t <= xmax; t += 20) s += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#111">${t}</text>`;
+  if (cur.move) s += `<line x1="${x(cur.move)}" x2="${x(cur.move)}" y1="${T - 4}" y2="${H - AX}" stroke="#2a78d6" stroke-width="1.5" pointer-events="none"/>`;
+  return `<div class="chart"><h3 class="sub">Game timeline</h3><div style="color:#111;font-size:12px">Rank: the whole game cut into stretches where the level held steady, each showing the mean level of its moves (opening stretches tend to read high: memorised moves match KataGo; a dashed outline = a short stretch, a rough reading) · Key moments: Tough Spots, <span style="color:#0aac23">●</span> found / <span style="color:#dc3c3d">✕</span> missed · Engine-like: AI-like spans · hover for details, click to go to the move</div>${s}</svg></div>`;
+}
+
 function spansOf(list, color) {
   const out = []; let a = null, b = null;
   list.filter(m => m.counted === 1).forEach(m => {
@@ -514,43 +609,143 @@ function spansOf(list, color) {
 // ---- one game ---------------------------------------------------------------------------------------
 let cur = { id: null, game: null, move: 0 };
 
+const GAME_TABS = [["timeline", "Timeline"], ["phases", "Phases"], ["problems", "Problem moves"], ["charts", "Charts"],
+  ["where", "Where they play"], ["moves", "All moves"]];
+function playerCard(g, c, r) {
+  const v = (k, f) => r && r[k] !== null && r[k] !== undefined && r[k] !== "" ? f(r[k]) : "–";
+  return `<div class="pcard"><div class="who"><span class="stone" style="background:${c === "B" ? "#1f1f1e" : "#fafaf7"}"></span>${esc(COLOR_NAMES[c])} · ${esc(playerInfo(g, c))}</div>
+    <div class="perf">${r && r.performance != null ? `${rankText(r.performance)} <small>± ${r.performance_sd.toFixed(1)}</small>` : "–"}</div>
+    <div class="perflabel">Performance Rank (the level played in this game)</div>
+    <div class="note">${esc(perfNote(r))}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${v("accuracy", x => (+x).toFixed(1))}</div><div class="l">Accuracy</div></div>
+      <div class="kpi"><div class="v">${v("match_pct", x => (+x).toFixed(1) + " %")}</div><div class="l">Match %</div></div>
+      <div class="kpi"><div class="v">${v("mean_loss", x => (+x).toFixed(2))}</div><div class="l">Avg Point Loss</div></div>
+      <div class="kpi"><div class="v">${v("hard_found_pct", x => Math.round(+x) + " %")}</div><div class="l">Key Move Found %</div></div>
+    </div></div>`;
+}
 function gameView(id) {
   const g = gameIndex()[id];
   if (!g) { main.innerHTML = `<p>Game not found.</p>`; return; }
-  cur = { id, game: null, move: 0 };
+  cur = { id, game: null, move: 0, tab: (cur && cur.tab) || "timeline" };
   const any = (g.players.B || g.players.W).overall || {};
-  const groups = ["B", "W"].filter(c => g.players[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: g.players[c] }));
   main.innerHTML = `<button class="back" id="back">← All games</button>
     <h2>${esc(g.file)} · ${esc(any.date || "")} · ${handicapLabel(any)}${any.komi !== "" && any.komi !== undefined ? " · komi " + esc(any.komi) : ""}</h2>
     ${["B", "W"].some(c => g.players[c] && g.players[c].overall && g.players[c].overall.complete === 0) ? `<p class="muted">Partially analysed: shown here, not counted in the totals.</p>` : ""}
-    <div id="gametable">${groupedTable(groups, "Player", GAME_COLS, { muteThin: false })}</div>
-    <div class="gamegrid">
-      <div style="position:sticky;top:8px" id="boardbox" class="card">Loading…</div>
-      <div id="graphs"></div>
+    <div class="pcards" id="pcards">${["B", "W"].filter(c => g.players[c]).map(c => playerCard(g, c, g.players[c].overall)).join("")}</div>
+    <div class="gv">
+      <div id="boardbox" class="card gv-board">Loading…</div>
+      <div class="card gv-panel"><div class="gtabs" id="gtabs">${GAME_TABS.map(([k, n]) => `<button data-tab="${k}" class="${k === cur.tab ? "on" : ""}">${n}</button>`).join("")}</div>
+        <div id="gpanel">Loading…</div></div>
     </div>
-    ${HOWTO}<div id="movelist"></div>`;
+    ${HOWTO}`;
   document.getElementById("back").onclick = () => show("games");
+  document.getElementById("gpanel").addEventListener("click", e => {
+    const b = e.target.closest("[data-ph]"); if (!b) return;
+    cur.phaseTab = b.dataset.ph;
+    renderPanel();
+  });
+  document.getElementById("gtabs").onclick = e => {
+    const b = e.target.closest("[data-tab]"); if (!b) return;
+    cur.tab = b.dataset.tab;
+    document.querySelectorAll("#gtabs button").forEach(x => x.classList.toggle("on", x.dataset.tab === cur.tab));
+    renderPanel();
+  };
   loadGame(id, data => {
     if (!data || cur.id !== id) return;
     cur.game = data;
     if (data.rows) {   // this game's rows for every phase come with its file (the summary has Overall only)
       const byColor = {};
       data.rows.forEach(r => ((byColor[r.color] = byColor[r.color] || {})[r.phase] = r));
-      const full = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}` + perfText(byColor[c].overall), rows: byColor[c] }));
-      document.getElementById("gametable").innerHTML = groupedTable(full, "Player", GAME_COLS, { muteThin: false });
+      cur.groups = ["B", "W"].filter(c => byColor[c]).map(c => ({ label: `${COLOR_NAMES[c]} · ${playerInfo(g, c)}`, rows: byColor[c] }));
+      document.getElementById("pcards").innerHTML = ["B", "W"].filter(c => byColor[c]).map(c => playerCard(g, c, byColor[c].overall)).join("");
     }
     cur.move = Math.min(1, data.board ? data.board.moves.length : 0);
     drawGame();
-    const list = ["B", "W"].flatMap(c => data.moves[c]).sort((a, b) => a.move - b.move);
-    document.getElementById("movelist").innerHTML = `<h2>Moves</h2><div class="movescroll"><table><tr><th>Move</th><th class="l">Player</th><th class="l">Phase</th><th class="l">Played</th><th class="l">Best Move</th><th>Point Loss</th><th>Position Difficulty (9d)</th><th>Key Moment</th><th>Tough Spot</th><th>Engine Likeness</th><th class="l">Note</th></tr>` +
-      list.map((m, i) => { const c = data.board ? data.board.moves[m.move - 1][0] : ""; return `<tr class="click ${i % 2 ? "" : "shade"}" data-move="${m.move}"><td>${m.move}</td><td class="l">${COLOR_NAMES[c] || ""}</td><td class="l">${PHASE_NAMES[m.phase]}</td><td class="l">${m.played}</td><td class="l">${m.engine_best}</td>` +
-        `<td>${lossText(m.loss)}</td><td>${m.p_err_9d === null ? "–" : Math.round(100 * m.p_err_9d) + " %"}</td><td>${m.critical ? "●" : ""}</td>` +
-        `<td>${m.p_err_9d >= 0.5 ? "●" : ""}</td><td>${m.p_assisted === null || m.p_assisted === undefined ? "–" : Math.round(100 * m.p_assisted) + " %"}</td>` +
-        `<td class="l muted">${m.decided ? "Decided (no Engine Likeness)" : m.counted === 0 ? "Opening book range (no Engine Likeness)" : ""}</td></tr>`; }).join("") + "</table></div>";
-    const box = document.querySelector("#movelist .movescroll"), rows = box.querySelectorAll("tr");
-    if (rows.length > 11)   // header + 10 moves visible
-      box.style.maxHeight = (rows[11].offsetTop - rows[0].offsetTop) + "px";
   });
+}
+
+// The analysis panel: one tab at a time; the tabs that follow the board (timeline, charts) redraw as the move changes.
+function renderPanel() {
+  const d = cur.game, box = document.getElementById("gpanel");
+  if (!d || !box) return;
+  const tipf = mm => `Move ${mm.move} (${COLOR_NAMES[mm.color]}, ${PHASE_NAMES[mm.phase]}) — Played / Best Move: ${mm.played} / ${mm.engine_best}; Point Loss: ${lossText(mm.loss)}; Position Difficulty (9d): ${mm.p_err_9d === null ? "–" : Math.round(100 * mm.p_err_9d) + " %"}; Engine Likeness: ${mm.p_assisted == null ? "–" : Math.round(100 * mm.p_assisted) + " %"} — click to show on the board`;
+  if (cur.tab === "timeline") box.innerHTML = timelineChart(d) || `<p>No timeline for this game.</p>`;
+  else if (cur.tab === "phases") box.innerHTML = cur.groups ? butterfly(cur.groups) : "";
+  else if (cur.tab === "problems") box.innerHTML = problemMoves(d);
+  else if (cur.tab === "charts") {
+    const spans = spansOf(d.moves.B, "B").concat(spansOf(d.moves.W, "W"));
+    box.innerHTML = `<div class="keys"><span style="--c:${SIDE.B}">Black</span><span style="--c:${SIDE.W}">White</span><span style="--c:#eb6834">Tough Spot</span><span style="--c:#2a78d6">current move</span></div>` +
+      perMoveChart("Point Loss", "points (capped at 15); dashed lines: Opening | Middle | Endgame", d.moves, "loss",
+        { bars: true, tf: v => Math.max(0, v), max: 15, tip: tipf, cursor: cur.move }) +
+      perMoveChart("Position Difficulty (9d)", "how often a 9d would go wrong in this position, %; dots: Tough Spots", d.moves, "p_err_9d",
+        { tf: v => 100 * v, max: 100, mark: mm => mm.p_err_9d >= 0.5, tip: tipf, cursor: cur.move }) +
+      perMoveChart("Engine Likeness", "P(AI-assisted), % (uncalibrated); shaded: AI-like spans" + (spans.length ? " — " + spans.map(s => `${COLOR_NAMES[s[2]]} ${s[0] === s[1] ? s[0] : s[0] + "–" + s[1]}`).join(", ") : ""),
+        d.moves, "p_assisted", { tf: v => 100 * v, max: 100, spans, tip: tipf, cursor: cur.move });
+  } else if (cur.tab === "where") box.innerHTML = d.board ? `<div class="wheregrid">` + ["B", "W"].map(col => whereCard(d, col)).join("") + `</div>` : "<p>No board data.</p>";
+  else if (cur.tab === "moves") {
+    const list = ["B", "W"].flatMap(c => d.moves[c]).sort((a, b) => a.move - b.move);
+    box.innerHTML = `<div class="movescroll" style="max-height:640px"><table><tr><th>Move</th><th class="l">Player</th><th class="l">Played</th><th class="l">Best</th><th>Point Loss</th><th>Difficulty (9d)</th><th>Tough Spot</th><th>Engine Likeness</th></tr>` +
+      list.map((m, i) => { const c = d.board ? d.board.moves[m.move - 1][0] : ""; return `<tr class="click ${m.move === cur.move ? "cur" : i % 2 ? "" : "shade"}" data-move="${m.move}"><td>${m.move}</td><td class="l">${COLOR_NAMES[c] || ""}</td><td class="l">${m.played}</td><td class="l">${m.engine_best}</td>` +
+        `<td>${lossText(m.loss)}</td><td>${m.p_err_9d === null ? "–" : Math.round(100 * m.p_err_9d) + " %"}</td><td>${m.p_err_9d >= 0.5 ? "●" : ""}</td><td>${m.p_assisted === null || m.p_assisted === undefined ? "–" : Math.round(100 * m.p_assisted) + " %"}</td></tr>`; }).join("") + "</table></div>";
+  }
+}
+
+// Phases tab: a butterfly chart — Black's bars to the left, White's to the right of each measure's name, one phase at
+// a time (sub-tabs). Each measure has its own scale (0-100 for percentages; the larger of the two players for Avg Point
+// Loss and Tough Spots). Values are black text at the bar ends; the players differ by side and header, not colour alone.
+const BF_METRICS = [
+  ["top1", "Best Move %", v => 100 * v, () => 100, v => `${Math.round(100 * v)} %`],
+  ["accuracy", "Accuracy", v => v, () => 100, v => (+v).toFixed(1)],
+  ["match_pct", "Match %", v => v, () => 100, v => `${(+v).toFixed(1)} %`],
+  ["mean_loss", "Avg Point Loss", v => v, m => Math.max(3, m), v => (+v).toFixed(2)],
+  ["critical_top1", "Key Moment Top Move %", v => 100 * v, () => 100, v => `${Math.round(100 * v)} %`],
+  ["difficulty_9d", "Game Difficulty (9d) %", v => v, () => 100, v => `${(+v).toFixed(1)} %`],
+  ["hard_positions", "Tough Spots (per game)", v => v, m => Math.max(1, m), v => `${Math.round(v)}`],
+  ["hard_found_pct", "Key Move Found % (per game)", v => v, () => 100, v => `${Math.round(v)} %`],
+  ["engine_like_pct", "Engine Likeness %", v => v, () => 100, v => `${(+v).toFixed(1)} %`],
+];
+function butterfly(groups) {
+  const ph = cur.phaseTab || "overall";
+  const byC = {}; groups.forEach(gr => { const c = gr.label.startsWith("Black") ? "B" : "W"; byC[c] = gr; });
+  const tabs = `<div class="gtabs" id="phtabs" style="margin-bottom:8px">${PHASES.map(p => `<button data-ph="${p}" class="${p === ph ? "on" : ""}">${PHASE_NAMES[p]}</button>`).join("")}</div>`;
+  const W = 610, MID = 170, ROW = 30, TOP = 34, side = (W - MID) / 2, PAD = 46;
+  const rB = byC.B && byC.B.rows[ph], rW = byC.W && byC.W.rows[ph];
+  const H = TOP + BF_METRICS.length * ROW + 8;
+  let sv = `<svg class="full" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Black and White compared, ${PHASE_NAMES[ph]}">`;
+  sv += `<text x="${side - 4}" y="16" text-anchor="end" font-size="13" font-weight="700" fill="#111">● ${esc(byC.B ? byC.B.label.replace(/^Black · /, "") : "Black")}</text>`;
+  sv += `<text x="${side + MID + 4}" y="16" font-size="13" font-weight="700" fill="#111">○ ${esc(byC.W ? byC.W.label.replace(/^White · /, "") : "White")}</text>`;
+  sv += `<text x="${W / 2}" y="16" text-anchor="middle" font-size="11" fill="#111">${byC.B && rB ? (rB.moves || "–") : "–"} / ${byC.W && rW ? (rW.moves || "–") : "–"} moves</text>`;
+  BF_METRICS.forEach(([k, name, tf, maxf, f], i) => {
+    const y = TOP + i * ROW, vb = rB && rB[k] != null && rB[k] !== "" ? tf(+rB[k]) : null, vw = rW && rW[k] != null && rW[k] !== "" ? tf(+rW[k]) : null;
+    const mx = maxf(Math.max(vb || 0, vw || 0)), len = v => (side - PAD) * Math.max(0, Math.min(1, v / mx));
+    if (i % 2 === 0) sv += `<rect x="0" y="${y - 4}" width="${W}" height="${ROW}" fill="#f3f2ee"/>`;
+    sv += `<text x="${W / 2}" y="${y + 13}" text-anchor="middle" font-size="12" fill="#111">${name}</text>`;
+    if (vb !== null) {
+      const l = len(vb);
+      sv += `<rect x="${side - l}" y="${y + 2}" width="${Math.max(l, 1)}" height="16" rx="3" fill="#2b2b29"><title>Black · ${name}: ${f(rB[k])}</title></rect>`;
+      sv += `<text x="${side - l - 5}" y="${y + 14}" text-anchor="end" font-size="12" font-weight="600" fill="#111">${f(rB[k])}</text>`;
+    }
+    if (vw !== null) {
+      const l = len(vw), x0 = side + MID;
+      sv += `<rect x="${x0}" y="${y + 2}" width="${Math.max(l, 1)}" height="16" rx="3" fill="#d6d5d0" stroke="#2b2b29" stroke-width="1"><title>White · ${name}: ${f(rW[k])}</title></rect>`;
+      sv += `<text x="${x0 + l + 5}" y="${y + 14}" font-size="12" font-weight="600" fill="#111">${f(rW[k])}</text>`;
+    }
+  });
+  sv += `</svg>`;
+  return tabs + sv + `<p style="font-size:12px;margin:6px 0 0">Longer bars are higher values; for Avg Point Loss lower is better. Game Difficulty and Tough Spots describe the positions the player faced, not how well they played.</p>`;
+}
+
+// Problem moves (Zhangqi's 问题手): each player's biggest losses (2+ points) and the Tough Spots they missed, worst first.
+function problemMoves(d) {
+  const col = c => {
+    const ms = d.moves[c].filter(m => m.loss !== null && m.loss >= 2).sort((a, b) => b.loss - a.loss).slice(0, 12);
+    if (!ms.length) return `<div><h3 class="sub">${COLOR_NAMES[c]}</h3><p>No move lost 2 points or more.</p></div>`;
+    return `<div><h3 class="sub">${COLOR_NAMES[c]} — ${ms.length === 12 ? "12 biggest" : ms.length} losses of 2+ points</h3><table><tr><th>Move</th><th class="l">Played</th><th class="l">Best</th><th>Loss</th><th>Difficulty</th></tr>` +
+      ms.map(m => `<tr class="click" data-move="${m.move}"><td>${m.move}</td><td class="l">${m.played}</td><td class="l">${m.engine_best}</td><td>${lossText(m.loss)}</td>` +
+        `<td>${m.p_err_9d === null ? "–" : Math.round(100 * m.p_err_9d) + " %"}${m.p_err_9d >= 0.5 ? " ●" : ""}</td></tr>`).join("") + `</table></div>`;
+  };
+  return `<p style="margin-top:0">Click a move to see it on the board. ● = a Tough Spot (a 9d would go wrong there half the time or more): a loss there is easier to forgive.</p><div class="probs">${col("B")}${col("W")}</div>`;
 }
 
 // Performance Rank: the level this player played at in this game, from the rank profiles of their colour (7d-B /
@@ -558,6 +753,11 @@ function gameView(id) {
 function rankText(v) { return v >= 1 ? `${v.toFixed(1)}d` : v <= 0 ? `${(1 - v).toFixed(1)}k` : v >= 0.5 ? "1d" : "1k"; }
 function perfText(r) {
   return r && r.performance != null ? ` · Performance Rank ${rankText(r.performance)} ± ${r.performance_sd.toFixed(1)}` : "";
+}
+function perfNote(r) {   // performance_split: engine-side minus human-style (profile) estimate; 2+ ranks apart is named
+  const s = r && r.performance_split;
+  if (s == null || Math.abs(s) < 2) return "";
+  return s > 0 ? `Engine stats ${s.toFixed(1)} ranks stronger than human-style play` : `Human-style play ${(-s).toFixed(1)} ranks stronger than engine stats`;
 }
 
 function moveRow(n) {   // the analysed row for move n (either player), or null
@@ -582,11 +782,11 @@ function drawGame() {
         ? `Before move ${cur.move} — ${mover} to play · ${mover} played the Best Move (blue circle)`
         : `Before move ${cur.move} — ${mover} to play · ${mover} dot: played · blue circle: Best Move`)
       : `Before move ${cur.move} — ${mover} to play · ${mover} dot: played · not analysed (no Best Move)`;
-    box.innerHTML = `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+    box.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
         <button class="back" data-step="-10">«</button><button class="back" data-step="-1">◀</button>
-        <input type="range" id="mvslider" min="1" max="${total}" value="${cur.move}" style="flex:1">
+        <input type="range" id="mvslider" min="1" max="${total}" value="${cur.move}" style="flex:1;min-width:80px">
         <button class="back" data-step="1">▶</button><button class="back" data-step="10">»</button>
-        <label class="muted" style="white-space:nowrap"><input type="checkbox" id="owntoggle" ${cur.showOwn ? "checked" : ""}> Ownership</label></div>` +
+        <label style="white-space:nowrap"><input type="checkbox" id="owntoggle" ${cur.showOwn ? "checked" : ""}> Ownership</label></div>` +
       boardSVG(d.board, cur.move - 1, Object.assign(m ? { played: m.played, best: m.engine_best, color: m.color }
         : { played: d.board.moves[cur.move - 1] && d.board.moves[cur.move - 1][1], color: (d.board.moves[cur.move - 1] || [""])[0] },
         { own: cur.showOwn && d.board.own ? d.board.own[String(cur.move - 1)] : null })) +
@@ -605,18 +805,8 @@ function drawGame() {
     const ot = document.getElementById("owntoggle");
     if (ot) ot.onchange = e => { cur.showOwn = e.target.checked; drawGame(); };
   } else box.innerHTML = `<p class="muted">No board data for this game.</p>`;
-  const tipf = mm => `Move ${mm.move} (${COLOR_NAMES[mm.color]}, ${PHASE_NAMES[mm.phase]}) — Played / Best Move: ${mm.played} / ${mm.engine_best}; Point Loss: ${lossText(mm.loss)}; Position Difficulty (9d): ${mm.p_err_9d === null ? "–" : Math.round(100 * mm.p_err_9d) + " %"}; Engine Likeness: ${mm.p_assisted == null ? "–" : Math.round(100 * mm.p_assisted) + " %"} — click to show on the board`;
-  const spans = spansOf(d.moves.B, "B").concat(spansOf(d.moves.W, "W"));
-  document.getElementById("graphs").innerHTML =
-    `<div class="keys"><span style="--c:${SIDE.B}">Black</span><span style="--c:${SIDE.W}">White</span><span style="--c:#eb6834">Tough Spot</span><span style="--c:#2a78d6">current move</span></div>` +
-    perMoveChart("Point Loss", "points (capped at 15); dashed lines: Opening | Middle | Endgame", d.moves, "loss",
-      { bars: true, tf: v => Math.max(0, v), max: 15, tip: tipf, cursor: cur.move }) +
-    perMoveChart("Position Difficulty (9d)", "how often a 9d would go wrong in this position, %; dots: Tough Spots", d.moves, "p_err_9d",
-      { tf: v => 100 * v, max: 100, mark: mm => mm.p_err_9d >= 0.5, tip: tipf, cursor: cur.move }) +
-    perMoveChart("Engine Likeness", "P(AI-assisted), % (uncalibrated); shaded: AI-like spans" + (spans.length ? " — " + spans.map(s => `${COLOR_NAMES[s[2]]} ${s[0] === s[1] ? s[0] : s[0] + "–" + s[1]}`).join(", ") : ""),
-      d.moves, "p_assisted", { tf: v => 100 * v, max: 100, spans, tip: tipf, cursor: cur.move }) +
-    (d.board ? `<h3 class="sub">Where they play</h3><div class="wheregrid">` +
-      ["B", "W"].map(col => whereCard(d, col)).join("") + `</div>` : "");
+  if (["timeline", "charts", "moves"].includes(cur.tab)) renderPanel();   // these follow the current move
+  else if (!document.getElementById("gpanel").dataset.drawn) { renderPanel(); document.getElementById("gpanel").dataset.drawn = 1; }
 }
 
 // ---- where they play: distribution map (4th-line areas) and the area table -----------------------------

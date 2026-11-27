@@ -933,3 +933,45 @@ grouped games with its own ±.
    profile at the position; features.py reads `humanPolicy`, not the search). The 100-visit KataGo-Human searches
    on the vast runs do not feed the rank model, so the next GPU runs can query the 17 profiles at maxVisits=1
    (policy only) and spend the time on the 1,000-visit engine search: much faster batches.
+
+## Pro tiers by Elo at the game date (2026-11-25, the user's call)
+The pro tiers were top = the 50 best ratings that year, new = first rated game < 2 years before, mid = the rest
+(picks_v1_top50.tsv). Now all three by the player's goratings Elo at the date of the game, against every pro rated
+that year (handles rating drift across eras): top = top 10 % of that year's ratings, mid = 40th-90th percentile,
+low = bottom 40 % (replaces "new": strength, not years). 120 games per era x tier, games already downloaded used first;
+games no longer picked kept in sgf/pro_unused. SGF ranks: 1p / 2p / 3p = low / mid / top.
+
+## Fox games selected (2026-11-26, the user's request: ~10k games per rank 15k-9d, at most 20 per player)
+Source: featurecat/go-dataset (GPL-3.0), only the rank-fixed archives <rank>/<rank>2.7z.* (July 2018 - October 2019;
+the 1k-9k and 1d-9d ones were replaced by the "fix wrong rank" commit; the older <rank>.7z group ranks, e.g. "4d-9d").
+`gorank/fox_select.py`: 7.3 M games read from their own SGFs; kept 19x19, HA[0] (Fox's HA[1] = no komi between
+different ranks), >= 50 moves, both players 15k-9d and at most one rank apart (in each archive White holds the folder's
+rank, Black varies): 5.6 M. Each game filed under its SGF ranks (the 9k / 9d volumes reported swapped in issue #5 did
+not matter). Chosen per rank, same-rank games first, seeded random order, scarcest rank first, at most 20 games per
+player over all ranks: 239,918 games — 10,000 for every rank except 9d (9,918: its top players hit the cap); 1,593
+players reached the cap. Same-rank games are > 99 % of every rank's candidates.
+Komi: Fox writes KM[650] = 6.5, KM[375] = 3.75 stones = 7.5 (Chinese), KM[0] in even games = not recorded; normalised
+in the selected files (KM[0] -> 6.5, or 7.5 under Chinese rules), the raw value kept in a GC comment.
+Files: ~/gorank-data/fox/sgf/<rank>/ (952 MB), selection.tsv; candidates/ (2.4 GB) kept for re-selection.
+Analysis cost at the current settings (KataGo 1,000 visits, 17 human profiles as policy): ~240k games x ~230 positions
+≈ 55 M positions ≈ 55 billion evaluations: ~370 h on an 8x5080 (~41k evals/s), ~$680. Options: fewer games per rank
+(e.g. 2,000 = ~$140), fewer visits for the engine (the rank features read the human policy; loss/accuracy need
+search), or sample positions per game.
+
+## KataGo's bot lists merged (2026-11-26, the user's pointer)
+lightvector/KataGo misc/bots/kgs.txt (101 names) and ogs.txt (24), the lists KataGo used to keep bots out of its
+human-SL training games. index_games.BOT_NAMES / BOT_PATTERN already caught most; 27 were missed and are added
+(CrazyStone variants CrazySton3/7/T and CrazyPhone, DarkGo, GinseiIgo, HiraMC1/2, the BadukTVint relay account,
+AyaGo..AyaGo7, Fuego100..Fuego10M, the GnuGo-based "Billy"/"Nanny"). In the 5,179 analysed or queued games: 3 with
+one of them (CrazyStonT, CrazyPhone 2016; BadukTVint 2015), all in analysed GPU batches.
+purge_games.py stripped only features_r* / raw_r* (home rounds), not the GPU batches' features_b* / raw_b*: extended,
+and run — 141 bot games (138 already set aside + 3) and the 42 user-flagged games removed from every batch file
+(backups *.bak once; flagged games kept as R6 labels). Fox: these lists have no Fox accounts; the Fox selection's
+20-games-per-player cap limits any bot's weight, and a Fox name scan (AI / 绝艺 / 星阵 / zero / katago...) is next.
+Fox selection redone without bots (same day): GoRanks' bot rules (with KataGo's lists) found 51 bot-like names in 208
+selected games (ELFOpenGo, zerobot, leelazero7/8, LeelaZero, katago, lz..., AlphaGo..., zen..., AQ; a few likely
+false positives such as "Leela fan" kept out too, 0.09 % of the games). fox_select.py now drops candidates with a
+bot-like player before choosing and normalises komi when writing: 239,835 games, 10,000 per rank except 9d (9,835);
+0 bot players left. The first version's komi comment GC[... Fox KM[0]] had an unescaped ] (invalid SGF): rewritten
+without brackets in all files; a 3,000-game sample parses with komi 6.5 / 7.5 and >= 50 moves. Old selection kept as
+~/gorank-data/fox/sgf_v1 (superseded, has the bad comment).
